@@ -24,7 +24,7 @@ export default async function EmployeesPage({ params }: { params: Promise<{ id: 
   if (!company) notFound()
 
   const { data: employees } = await sc.from('profiles')
-    .select('id, full_name, email, role, department_id, job_title, hire_date, birthday, created_at')
+    .select('id, full_name, email, role, department_id, job_title, hire_date, birthday, r1_pattern, l2_pattern, created_at')
     .eq('company_id', companyId)
     .order('created_at')
 
@@ -74,13 +74,16 @@ export default async function EmployeesPage({ params }: { params: Promise<{ id: 
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
                 <tr>
-                  <th className="px-6 py-3 text-left">姓名</th>
-                  <th className="px-6 py-3 text-left">部門</th>
-                  <th className="px-6 py-3 text-left">職稱</th>
-                  <th className="px-6 py-3 text-left">角色</th>
-                  <th className="px-6 py-3 text-left">年資</th>
-                  <th className="px-6 py-3 text-left">訓練進度</th>
-                  <th className="px-6 py-3 text-left">操作</th>
+                  <th className="px-4 py-3 text-left">姓名</th>
+                  <th className="px-4 py-3 text-left">Email</th>
+                  <th className="px-4 py-3 text-left">部門</th>
+                  <th className="px-4 py-3 text-left">職稱</th>
+                  <th className="px-4 py-3 text-left">生日</th>
+                  <th className="px-4 py-3 text-left">R1 管理力</th>
+                  <th className="px-4 py-3 text-left">L2 心像力</th>
+                  <th className="px-4 py-3 text-left">年資</th>
+                  <th className="px-4 py-3 text-left">訓練進度</th>
+                  <th className="px-4 py-3 text-left">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -88,7 +91,7 @@ export default async function EmployeesPage({ params }: { params: Promise<{ id: 
                   const stats = enrollStats[emp.id] ?? { total: 0, completed: 0 }
                   return (
                     <tr key={emp.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-3">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
                             <span className="text-xs font-semibold text-indigo-700">{(emp.full_name || emp.email).charAt(0)}</span>
@@ -96,20 +99,19 @@ export default async function EmployeesPage({ params }: { params: Promise<{ id: 
                           <span className="font-medium text-gray-900">{emp.full_name || '—'}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-3 text-gray-500">{deptMap[emp.department_id ?? ''] ?? '—'}</td>
-                      <td className="px-6 py-3 text-gray-500">{emp.job_title ?? '—'}</td>
-                      <td className="px-6 py-3">
-                        <Badge variant={emp.role === 'hr' ? 'info' : emp.role === 'manager' ? 'warning' : 'default'}>
-                          {ROLE_LABELS[emp.role] ?? emp.role}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-3 text-xs text-gray-500">
+                      <td className="px-4 py-3 text-xs text-gray-500">{emp.email}</td>
+                      <td className="px-4 py-3 text-gray-500">{deptMap[emp.department_id ?? ''] ?? '—'}</td>
+                      <td className="px-4 py-3 text-gray-500">{emp.job_title ?? '—'}</td>
+                      <td className="px-4 py-3 text-xs text-gray-500">{emp.birthday ?? '—'}</td>
+                      <td className="px-4 py-3 text-xs text-gray-700 font-medium">{emp.r1_pattern ?? '—'}</td>
+                      <td className="px-4 py-3 text-xs text-gray-700 font-medium">{emp.l2_pattern ?? '—'}</td>
+                      <td className="px-4 py-3 text-xs text-gray-500">
                         {emp.hire_date ? (() => {
                           const years = Math.floor((new Date().getTime() - new Date(emp.hire_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
                           return `${years} 年`
                         })() : '—'}
                       </td>
-                      <td className="px-6 py-3">
+                      <td className="px-4 py-3">
                         {stats.total > 0 ? (
                           <div className="flex items-center gap-2">
                             <div className="w-16 bg-gray-200 rounded-full h-1.5">
@@ -121,7 +123,7 @@ export default async function EmployeesPage({ params }: { params: Promise<{ id: 
                           <span className="text-xs text-gray-400">無紀錄</span>
                         )}
                       </td>
-                      <td className="px-6 py-3">
+                      <td className="px-4 py-3">
                         <Link
                           href={`/companies/${companyId}/employees/${emp.id}/passport`}
                           className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
