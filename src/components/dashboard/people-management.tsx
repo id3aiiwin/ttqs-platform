@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
@@ -397,19 +397,7 @@ function PersonDetailModal({ person: p, companyMap, courses, ordersByPerson, sur
           )}
 
           {tab === 'learning' && (
-            <div className="space-y-3">
-              {p.company_id && (
-                <Link href={`/companies/${p.company_id}/employees/${p.id}/passport`} className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 mb-3">
-                  📚 查看企業學習護照
-                </Link>
-              )}
-              <Link href={`/my-history?user=${p.id}`} className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">
-                📋 查看完整學習履歷
-              </Link>
-              <Link href={`/my-quizzes?user=${p.id}`} className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">
-                🧪 查看測驗紀錄
-              </Link>
-            </div>
+            <InlineLearningTab personId={p.id} personName={p.full_name ?? p.email} companyId={p.company_id} />
           )}
 
           {tab === 'surveys' && (() => {
@@ -506,6 +494,100 @@ function Field({ label, value }: { label: string; value: string | null | undefin
     <div>
       <p className="text-xs text-gray-400">{label}</p>
       <p className="text-gray-700">{value || '—'}</p>
+    </div>
+  )
+}
+
+// ===== Inline Learning Tab =====
+function InlineLearningTab({ personId, personName, companyId }: { personId: string; personName: string; companyId: string | null }) {
+  const [data, setData] = useState<{
+    enrollments: { id: string; course_title: string; course_date: string | null; course_hours: number | null; course_trainer: string | null; status: string; completion_date: string | null }[]
+    quizAttempts: { id: string; quiz_title: string; score: number | null; total: number | null; percentage: number | null; passed: boolean; completed_at: string }[]
+  } | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`/api/student-learning?user_id=${personId}`)
+      .then(r => r.json())
+      .then(d => { setData(d); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [personId])
+
+  if (loading) return <p className="text-sm text-gray-400 text-center py-4">載入中...</p>
+  if (!data) return <p className="text-sm text-gray-400 text-center py-4">載入失敗</p>
+
+  const totalHours = data.enrollments.reduce((s, e) => s + (e.course_hours ?? 0), 0)
+  const quizPassRate = data.quizAttempts.length > 0
+    ? Math.round(data.quizAttempts.filter(a => a.passed).length / data.quizAttempts.length * 100)
+    : 0
+
+  return (
+    <div className="space-y-4">
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <MiniStat label="參訓課程" value={String(data.enrollments.length)} />
+        <MiniStat label="總時數" value={`${totalHours}h`} />
+        <MiniStat label="測驗通過率" value={data.quizAttempts.length > 0 ? `${quizPassRate}%` : '—'} />
+      </div>
+
+      {/* Enrollments */}
+      <div>
+        <p className="text-xs font-semibold text-gray-600 mb-2">參訓紀錄</p>
+        {data.enrollments.length === 0 ? (
+          <p className="text-xs text-gray-400">尚無參訓紀錄</p>
+        ) : (
+          <div className="space-y-1.5 max-h-48 overflow-y-auto">
+            {data.enrollments.map(e => (
+              <div key={e.id} className="bg-gray-50 rounded-lg p-2.5 flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-900">{e.course_title}</p>
+                  <p className="text-xs text-gray-400">
+                    {e.course_date ?? '—'}{e.course_hours ? ` · ${e.course_hours}h` : ''}{e.course_trainer ? ` · ${e.course_trainer}` : ''}
+                  </p>
+                </div>
+                <span className={`text-[10px] rounded-full px-2 py-0.5 ${e.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {e.status === 'completed' ? '完成' : '進行中'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Quiz Attempts */}
+      <div>
+        <p className="text-xs font-semibold text-gray-600 mb-2">測驗紀錄</p>
+        {data.quizAttempts.length === 0 ? (
+          <p className="text-xs text-gray-400">尚無測驗紀錄</p>
+        ) : (
+          <div className="space-y-1.5 max-h-48 overflow-y-auto">
+            {data.quizAttempts.map(a => (
+              <div key={a.id} className="bg-gray-50 rounded-lg p-2.5 flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-900">{a.quiz_title}</p>
+                  <p className="text-xs text-gray-400">{a.completed_at?.split('T')[0] ?? '—'}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-medium ${(a.percentage ?? 0) >= 80 ? 'text-green-600' : (a.percentage ?? 0) >= 60 ? 'text-amber-600' : 'text-red-600'}`}>
+                    {a.score ?? 0}/{a.total ?? 0} ({a.percentage ?? 0}%)
+                  </span>
+                  <span className={`text-[10px] rounded-full px-2 py-0.5 ${a.passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    {a.passed ? '通過' : '未通過'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Link to enterprise passport */}
+      {companyId && (
+        <Link href={`/companies/${companyId}/employees/${personId}/passport`}
+          className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
+          查看企業學習護照 →
+        </Link>
+      )}
     </div>
   )
 }

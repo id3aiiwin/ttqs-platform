@@ -16,7 +16,8 @@ export default async function EmployeesPage({ params }: { params: Promise<{ id: 
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)
-  if (profile?.role !== 'consultant' && profile?.role !== 'hr') redirect('/dashboard')
+  if (!profile || !['consultant', 'admin', 'hr', 'manager'].includes(profile.role)) redirect('/dashboard')
+  const isConsultant = profile.role === 'consultant' || profile.role === 'admin'
 
   const sc = createServiceClient()
 
@@ -79,8 +80,8 @@ export default async function EmployeesPage({ params }: { params: Promise<{ id: 
                   <th className="px-4 py-3 text-left">部門</th>
                   <th className="px-4 py-3 text-left">職稱</th>
                   <th className="px-4 py-3 text-left">生日</th>
-                  <th className="px-4 py-3 text-left">R1 管理力</th>
-                  <th className="px-4 py-3 text-left">L2 心像力</th>
+                  {isConsultant && <th className="px-4 py-3 text-left">R1 管理力</th>}
+                  {isConsultant && <th className="px-4 py-3 text-left">L2 心像力</th>}
                   <th className="px-4 py-3 text-left">年資</th>
                   <th className="px-4 py-3 text-left">學習履歷</th>
                 </tr>
@@ -102,8 +103,8 @@ export default async function EmployeesPage({ params }: { params: Promise<{ id: 
                       <td className="px-4 py-3 text-gray-500">{deptMap[emp.department_id ?? ''] ?? '—'}</td>
                       <td className="px-4 py-3 text-gray-500">{emp.job_title ?? '—'}</td>
                       <td className="px-4 py-3 text-xs text-gray-500">{emp.birthday ?? '—'}</td>
-                      <td className="px-4 py-3 text-xs text-gray-700 font-medium">{emp.r1_pattern ?? '—'}</td>
-                      <td className="px-4 py-3 text-xs text-gray-700 font-medium">{emp.l2_pattern ?? '—'}</td>
+                      {isConsultant && <td className="px-4 py-3 text-xs text-gray-700 font-medium">{emp.r1_pattern ?? '—'}</td>}
+                      {isConsultant && <td className="px-4 py-3 text-xs text-gray-700 font-medium">{emp.l2_pattern ?? '—'}</td>}
                       <td className="px-4 py-3 text-xs text-gray-500">
                         {emp.hire_date ? (() => {
                           const years = Math.floor((new Date().getTime() - new Date(emp.hire_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
