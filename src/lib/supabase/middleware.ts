@@ -41,6 +41,10 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && isAuthPage) {
+    // Don't redirect reset-password page (user needs to set new password)
+    if (pathname === '/auth/reset-password') {
+      return supabaseResponse
+    }
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
