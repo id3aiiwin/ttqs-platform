@@ -55,7 +55,8 @@ export default async function CompetencyPage({
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)
-  const isConsultant = profile?.role === 'consultant'
+  const isConsultant = profile?.role === 'consultant' || profile?.role === 'admin'
+  const isEmployee = profile?.role === 'employee' || profile?.role === 'hr' || profile?.role === 'manager'
 
   const serviceClient = createServiceClient()
 
@@ -101,11 +102,14 @@ export default async function CompetencyPage({
     employeeMap[e.id] = { name: e.full_name || e.email, email: e.email }
   })
 
-  // 篩選當前 tab 的 entries
+  // 篩選當前 tab 的 entries（員工只能看自己的）
   const formType = FORM_TYPE_MAP[activeTab]
-  const filteredEntries = formType
+  let filteredEntries = formType
     ? entries?.filter((e) => e.form_type === formType) ?? []
     : []
+  if (isEmployee && !isConsultant) {
+    filteredEntries = filteredEntries.filter(e => e.employee_id === user.id)
+  }
 
   return (
     <div className="p-8 max-w-5xl mx-auto">

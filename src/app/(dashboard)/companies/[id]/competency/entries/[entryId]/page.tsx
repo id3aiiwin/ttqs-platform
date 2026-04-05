@@ -41,7 +41,7 @@ export default async function EntryDetailPage({
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)
-  const isConsultant = profile?.role === 'consultant'
+  const isConsultant = profile?.role === 'consultant' || profile?.role === 'admin'
 
   const serviceClient = createServiceClient()
 
@@ -53,6 +53,9 @@ export default async function EntryDetailPage({
     .single()
 
   if (!entry) notFound()
+
+  // 員工只能看自己的 entry
+  if (!isConsultant && entry.employee_id !== user.id) redirect(`/companies/${companyId}/competency`)
 
   // 取得員工資訊
   const { data: employee } = await serviceClient
