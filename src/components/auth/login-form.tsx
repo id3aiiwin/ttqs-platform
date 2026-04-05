@@ -92,21 +92,26 @@ export function LoginForm() {
 
     const formData = new FormData(e.currentTarget)
     const email = formData.get('email') as string
-    const pwd = formData.get('password') as string
     const supabase = createClient()
 
     if (mode === 'forgot') {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
-      })
-      if (error) {
-        setError(error.message)
-      } else {
-        setSuccess('密碼重設信已發送，請查看您的信箱。')
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth/confirm`,
+        })
+        if (error) {
+          setError(error.message)
+        } else {
+          setSuccess('密碼重設信已發送，請查看您的信箱。')
+        }
+      } catch {
+        setError('發送失敗，請稍後再試。')
       }
       setLoading(false)
       return
     }
+
+    const pwd = formData.get('password') as string
 
     if (mode === 'register') {
       const name = formData.get('name') as string
