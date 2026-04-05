@@ -47,8 +47,8 @@ export default async function PeoplePage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">人員管理</h1>
-      <p className="text-gray-500 text-sm mb-6">管理所有平台使用者，可依角色篩選</p>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">學員資料管理</h1>
+      <p className="text-gray-500 text-sm mb-6">查看所有學員的基本資料、消費、R1/L2、天賦評量、學習履歷、測驗結果</p>
       <PeopleManagement people={people} companyMap={companyMap} courses={courses} />
     </div>
   )

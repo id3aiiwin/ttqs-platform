@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { Badge } from '@/components/ui/badge'
 
 interface Course {
   id: string
@@ -11,98 +12,180 @@ interface Course {
   trainer: string | null
   company_id: string | null
   review_status: string
+  material_submit_date: string | null
   created_at: string
+}
+
+interface Satisfaction {
+  le: number; ce: number; ie: number; ve: number; overall: number; count: number
 }
 
 interface Props {
   pending: Course[]
   recent: Course[]
   companyMap: Record<string, string>
+  satisfactionMap: Record<string, Satisfaction>
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  approved: 'bg-green-100 text-green-700',
-  rejected: 'bg-red-100 text-red-700',
-  pending: 'bg-amber-100 text-amber-700',
+function scoreColor(score: number): string {
+  if (score >= 4.5) return 'text-green-600'
+  if (score >= 3.5) return 'text-blue-600'
+  if (score >= 2.5) return 'text-amber-600'
+  return 'text-red-600'
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  approved: '已通過',
-  rejected: '已駁回',
-  pending: '待審核',
+function isMaterialOverdue(startDate: string | null, submitDate: string | null): 'on_time' | 'overdue' | 'not_submitted' | 'no_date' {
+  if (!startDate) return 'no_date'
+  if (!submitDate) {
+    const deadline = new Date(startDate)
+    deadline.setDate(deadline.getDate() - 30)
+    return new Date() > deadline ? 'overdue' : 'not_submitted'
+  }
+  const deadline = new Date(startDate)
+  deadline.setDate(deadline.getDate() - 30)
+  return new Date(submitDate) <= deadline ? 'on_time' : 'overdue'
 }
 
-export function CourseReviewClient({ pending, recent, companyMap }: Props) {
+export function CourseReviewClient({ pending, recent, companyMap, satisfactionMap }: Props) {
   return (
-    <div>
-      {/* Pending Section */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">
-          待審核
-          {pending.length > 0 && <span className="ml-2 text-sm font-normal text-amber-600">({pending.length})</span>}
-        </h2>
+    <div className="space-y-6">
+      {/* 待審核 */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <h2 className="text-lg font-semibold text-gray-900">待審核</h2>
+          {pending.length > 0 && (
+            <span className="bg-red-100 text-red-700 text-xs font-bold rounded-full px-2 py-0.5">{pending.length}</span>
+          )}
+        </div>
 
         {pending.length === 0 ? (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
-            <p className="text-sm text-green-700">目前沒有待審核的課程</p>
+          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400 text-sm">
+            目前沒有待審核的課程
           </div>
         ) : (
-          <div className="space-y-3">
-            {pending.map(course => (
-              <div key={course.id} className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between hover:shadow-md transition-shadow">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">{course.title}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {course.company_id ? companyMap[course.company_id] ?? '—' : '公開課'}
-                    {course.trainer && ` · ${course.trainer}`}
-                    {course.start_date && ` · ${course.start_date}`}
-                    {course.hours != null && ` · ${course.hours}h`}
-                  </p>
-                </div>
-                <Link
-                  href={`/courses/${course.id}`}
-                  className="ml-4 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors flex-shrink-0"
-                >
-                  審核
-                </Link>
-              </div>
-            ))}
+          <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-xs text-gray-500">
+                <tr>
+                  <th className="px-4 py-3 text-left">課程名稱</th>
+                  <th className="px-4 py-3 text-left">企業</th>
+                  <th className="px-4 py-3 text-left">講師</th>
+                  <th className="px-4 py-3 text-right">時數</th>
+                  <th className="px-4 py-3 text-left">教案繳交</th>
+                  <th className="px-4 py-3 text-right">學習效果</th>
+                  <th className="px-4 py-3 text-right">課程評價</th>
+                  <th className="px-4 py-3 text-right">講師評價</th>
+                  <th className="px-4 py-3 text-right">場地</th>
+                  <th className="px-4 py-3 text-right">整體</th>
+                  <th className="px-4 py-3 text-center">操作</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {pending.map(c => {
+                  const sat = satisfactionMap[c.id]
+                  const materialStatus = isMaterialOverdue(c.start_date, c.material_submit_date)
+                  return (
+                    <tr key={c.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-gray-900">{c.title}</p>
+                        <p className="text-xs text-gray-400">{c.start_date ?? '未排期'}</p>
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">{c.company_id ? companyMap[c.company_id] ?? '—' : '公開課'}</td>
+                      <td className="px-4 py-3 text-gray-700">{c.trainer ?? '—'}</td>
+                      <td className="px-4 py-3 text-right text-gray-700">{c.hours ? `${c.hours}h` : '—'}</td>
+                      <td className="px-4 py-3">
+                        {materialStatus === 'on_time' && (
+                          <span className="text-xs text-green-600 font-medium">{c.material_submit_date}</span>
+                        )}
+                        {materialStatus === 'overdue' && (
+                          <span className="text-xs text-red-600 font-medium">{c.material_submit_date ? `${c.material_submit_date} (逾期)` : '未繳交 (逾期)'}</span>
+                        )}
+                        {materialStatus === 'not_submitted' && <span className="text-xs text-gray-400">未繳交</span>}
+                        {materialStatus === 'no_date' && <span className="text-xs text-gray-400">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {sat ? <span className={`text-xs font-medium ${scoreColor(sat.le)}`}>{sat.le.toFixed(1)}</span> : <span className="text-xs text-gray-400">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {sat ? <span className={`text-xs font-medium ${scoreColor(sat.ce)}`}>{sat.ce.toFixed(1)}</span> : <span className="text-xs text-gray-400">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {sat ? <span className={`text-xs font-medium ${scoreColor(sat.ie)}`}>{sat.ie.toFixed(1)}</span> : <span className="text-xs text-gray-400">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {sat ? <span className={`text-xs font-medium ${scoreColor(sat.ve)}`}>{sat.ve.toFixed(1)}</span> : <span className="text-xs text-gray-400">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {sat ? (
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            sat.overall >= 4.5 ? 'bg-green-50 text-green-700' :
+                            sat.overall >= 3.5 ? 'bg-blue-50 text-blue-700' :
+                            sat.overall >= 2.5 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'
+                          }`}>
+                            {sat.overall.toFixed(2)}
+                            <span className="text-[10px] ml-0.5 opacity-60">({sat.count})</span>
+                          </span>
+                        ) : <span className="text-xs text-gray-400">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <Link href={`/courses?selected=${c.id}`}
+                          className="inline-block px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700">
+                          審核
+                        </Link>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
 
-      {/* Recently Reviewed Section */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">已審核</h2>
-
-        {recent.length === 0 ? (
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center">
-            <p className="text-sm text-gray-400">尚無審核紀錄</p>
+      {/* 已審核 */}
+      {recent.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">已審核</h2>
+          <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-xs text-gray-500">
+                <tr>
+                  <th className="px-4 py-3 text-left">課程名稱</th>
+                  <th className="px-4 py-3 text-left">企業</th>
+                  <th className="px-4 py-3 text-left">講師</th>
+                  <th className="px-4 py-3 text-right">時數</th>
+                  <th className="px-4 py-3 text-right">整體滿意度</th>
+                  <th className="px-4 py-3 text-center">審核結果</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {recent.map(c => {
+                  const sat = satisfactionMap[c.id]
+                  return (
+                    <tr key={c.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <Link href={`/courses?selected=${c.id}`} className="font-medium text-gray-900 hover:text-indigo-600">{c.title}</Link>
+                        <p className="text-xs text-gray-400">{c.start_date ?? '—'}</p>
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">{c.company_id ? companyMap[c.company_id] ?? '—' : '公開課'}</td>
+                      <td className="px-4 py-3 text-gray-700">{c.trainer ?? '—'}</td>
+                      <td className="px-4 py-3 text-right text-gray-700">{c.hours ? `${c.hours}h` : '—'}</td>
+                      <td className="px-4 py-3 text-right">
+                        {sat ? <span className={`text-xs font-medium ${scoreColor(sat.overall)}`}>{sat.overall.toFixed(2)}</span> : <span className="text-xs text-gray-400">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <Badge variant={c.review_status === 'approved' ? 'success' : 'danger'}>
+                          {c.review_status === 'approved' ? '已核准' : '已退回'}
+                        </Badge>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <div className="space-y-2">
-            {recent.map(course => (
-              <Link
-                key={course.id}
-                href={`/courses/${course.id}`}
-                className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-shadow"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">{course.title}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {course.company_id ? companyMap[course.company_id] ?? '—' : '公開課'}
-                    {course.trainer && ` · ${course.trainer}`}
-                    {course.start_date && ` · ${course.start_date}`}
-                  </p>
-                </div>
-                <span className={`ml-4 text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${STATUS_STYLES[course.review_status] ?? 'bg-gray-100 text-gray-500'}`}>
-                  {STATUS_LABELS[course.review_status] ?? course.review_status}
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
