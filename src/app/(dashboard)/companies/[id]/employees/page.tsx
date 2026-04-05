@@ -82,8 +82,7 @@ export default async function EmployeesPage({ params }: { params: Promise<{ id: 
                   <th className="px-4 py-3 text-left">R1 管理力</th>
                   <th className="px-4 py-3 text-left">L2 心像力</th>
                   <th className="px-4 py-3 text-left">年資</th>
-                  <th className="px-4 py-3 text-left">訓練進度</th>
-                  <th className="px-4 py-3 text-left">操作</th>
+                  <th className="px-4 py-3 text-left">學習履歷</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -112,23 +111,11 @@ export default async function EmployeesPage({ params }: { params: Promise<{ id: 
                         })() : '—'}
                       </td>
                       <td className="px-4 py-3">
-                        {stats.total > 0 ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-16 bg-gray-200 rounded-full h-1.5">
-                              <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${(stats.completed / stats.total) * 100}%` }} />
-                            </div>
-                            <span className="text-xs text-gray-500">{stats.completed}/{stats.total}</span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-400">無紀錄</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
                         <Link
                           href={`/companies/${companyId}/employees/${emp.id}/passport`}
                           className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
                         >
-                          學習履歷
+                          查看 →
                         </Link>
                       </td>
                     </tr>
