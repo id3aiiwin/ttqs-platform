@@ -657,25 +657,9 @@ function Stage2Section({
   const verbMatch = desc.match(/適用動詞[：:](.+?)(?:\.|。|$)/)
   const verbs = verbMatch ? verbMatch[1].split('、').map((v) => v.trim()) : []
 
-  const storedRows = Array.isArray(valueEntry?.value) ? valueEntry!.value : []
-  const [enabled, setEnabled] = useState(storedRows.length > 0)
-  const [rows, setRows] = useState<Record<string, string>[]>(
-    storedRows.length > 0
-      ? (storedRows as Record<string, string>[])
-      : [Object.fromEntries(columns.map((c) => [c.key, '']))]
-  )
+  const storedVal = valueEntry?.value as { v?: unknown } | null
+  const [enabled, setEnabled] = useState(storedVal?.v != null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const doSave = useCallback(
-    (newRows: Record<string, string>[]) => {
-      if (!valueEntry?.valueId || readOnly) return
-      if (saveTimer.current) clearTimeout(saveTimer.current)
-      saveTimer.current = setTimeout(async () => {
-        await updateFieldValue(valueEntry.valueId, { v: newRows }, companyId)
-      }, 600)
-    },
-    [valueEntry?.valueId, companyId, readOnly]
-  )
 
   function toggleEnabled() {
     if (readOnly) return
@@ -687,28 +671,49 @@ function Stage2Section({
     }
   }
 
-  function updateRow(index: number, key: string, val: string) {
-    const next = [...rows]
-    next[index] = { ...next[index], [key]: val }
-    setRows(next)
-    doSave(next)
+  // Data is stored as task groups: [{ task_name: "...", rows: [{col1: "", col2: ""}] }]
+  type TaskGroup = { task_name: string; rows: Record<string, string>[] }
+  const [taskGroups, setTaskGroups] = useState<TaskGroup[]>(() => {
+    const raw = valueEntry?.value as { v?: unknown } | null
+    const arr = raw?.v
+    // Migrate from old flat format to grouped format
+    if (Array.isArray(arr) && arr.length > 0 && !('task_name' in (arr[0] as Record<string, unknown>))) {
+      // Old flat rows — wrap in a single task group
+      return [{ task_name: '', rows: arr as Record<string, string>[] }]
+    }
+    return (arr as TaskGroup[] | null) ?? [{ task_name: '', rows: [Object.fromEntries(columns.map(c => [c.key, '']))] }]
+  })
+
+  function doSaveGroups(groups: TaskGroup[]) {
+    if (!valueEntry?.valueId || readOnly) return
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(async () => {
+      await updateFieldValue(valueEntry.valueId, { v: groups }, companyId)
+    }, 600)
   }
 
-  function addRow() {
-    const emptyRow = Object.fromEntries(columns.map((c) => [c.key, '']))
-    const next = [...rows, emptyRow]
-    setRows(next)
-    doSave(next)
+  function updateTaskName(gi: number, name: string) {
+    const next = [...taskGroups]; next[gi] = { ...next[gi], task_name: name }; setTaskGroups(next); doSaveGroups(next)
+  }
+  function updateRow(gi: number, ri: number, key: string, val: string) {
+    const next = [...taskGroups]; const rows2 = [...next[gi].rows]; rows2[ri] = { ...rows2[ri], [key]: val }; next[gi] = { ...next[gi], rows: rows2 }; setTaskGroups(next); doSaveGroups(next)
+  }
+  function addRow(gi: number) {
+    const next = [...taskGroups]; next[gi] = { ...next[gi], rows: [...next[gi].rows, Object.fromEntries(columns.map(c => [c.key, '']))] }; setTaskGroups(next); doSaveGroups(next)
+  }
+  function removeRow(gi: number, ri: number) {
+    if (taskGroups[gi].rows.length <= 1) return
+    const next = [...taskGroups]; next[gi] = { ...next[gi], rows: next[gi].rows.filter((_, i) => i !== ri) }; setTaskGroups(next); doSaveGroups(next)
+  }
+  function addTaskGroup() {
+    const next = [...taskGroups, { task_name: '', rows: [Object.fromEntries(columns.map(c => [c.key, '']))] }]
+    setTaskGroups(next); doSaveGroups(next)
+  }
+  function removeTaskGroup(gi: number) {
+    if (taskGroups.length <= 1) return
+    const next = taskGroups.filter((_, i) => i !== gi); setTaskGroups(next); doSaveGroups(next)
   }
 
-  function removeRow(index: number) {
-    if (rows.length <= 1) return
-    const next = rows.filter((_, i) => i !== index)
-    setRows(next)
-    doSave(next)
-  }
-
-  // Clean description (remove verb prefix for display)
   const cleanDesc = desc.replace(/適用動詞[：:][^。.]+[。.]?\s*/, '').trim()
 
   return (
@@ -733,12 +738,7 @@ function Stage2Section({
           {verbs.length > 0 && (
             <div className="flex gap-1 flex-wrap justify-end">
               {verbs.map((v) => (
-                <span
-                  key={v}
-                  className="px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-700"
-                >
-                  {v}
-                </span>
+                <span key={v} className="px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-700">{v}</span>
               ))}
             </div>
           )}
@@ -747,71 +747,74 @@ function Stage2Section({
 
       {enabled && (
         <CardBody>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 px-2 text-xs font-medium text-gray-500 w-8">#</th>
-                  {columns.map((col) => (
-                    <th key={col.key} className="text-left py-2 px-2 text-xs font-medium text-gray-500">
-                      {col.label}
-                    </th>
-                  ))}
-                  {!readOnly && <th className="w-8" />}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, ri) => (
-                  <tr key={ri} className="border-b border-gray-100">
-                    <td className="py-2 px-2 text-xs text-gray-400">{ri + 1}</td>
-                    {columns.map((col) => (
-                      <td key={col.key} className="py-2 px-2">
-                        {col.type === 'textarea' ? (
-                          <textarea
-                            value={row[col.key] ?? ''}
-                            onChange={(e) => updateRow(ri, col.key, e.target.value)}
-                            readOnly={readOnly}
-                            rows={2}
-                            className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-purple-500 resize-y"
-                          />
-                        ) : (
-                          <input
-                            type="text"
-                            value={row[col.key] ?? ''}
-                            onChange={(e) => updateRow(ri, col.key, e.target.value)}
-                            readOnly={readOnly}
-                            className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-purple-500"
-                          />
-                        )}
-                      </td>
-                    ))}
-                    {!readOnly && (
-                      <td className="py-2 px-1">
-                        {rows.length > 1 && (
-                          <button
-                            onClick={() => removeRow(ri)}
-                            className="text-red-400 hover:text-red-600 text-xs"
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="space-y-4">
+            {taskGroups.map((group, gi) => (
+              <div key={gi} className="border border-purple-100 rounded-lg p-4 bg-purple-50/30">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs font-semibold text-purple-600 whitespace-nowrap">任務 {gi + 1}</span>
+                  <input type="text" value={group.task_name} onChange={(e) => updateTaskName(gi, e.target.value)}
+                    readOnly={readOnly} placeholder="輸入任務名稱..."
+                    className="flex-1 text-sm font-medium border border-purple-200 rounded px-2 py-1 focus:outline-none focus:border-purple-500 bg-white" />
+                  {!readOnly && taskGroups.length > 1 && (
+                    <button onClick={() => removeTaskGroup(gi)} className="text-xs text-red-400 hover:text-red-600">移除</button>
+                  )}
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-purple-200">
+                        <th className="text-left py-2 px-2 text-xs font-medium text-gray-500 w-8">#</th>
+                        {columns.map((col) => (
+                          <th key={col.key} className="text-left py-2 px-2 text-xs font-medium text-gray-500">{col.label}</th>
+                        ))}
+                        {!readOnly && <th className="w-8" />}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.rows.map((row, ri) => (
+                        <tr key={ri} className="border-b border-gray-100">
+                          <td className="py-2 px-2 text-xs text-gray-400">{ri + 1}</td>
+                          {columns.map((col) => (
+                            <td key={col.key} className="py-2 px-2">
+                              {col.type === 'textarea' ? (
+                                <textarea value={row[col.key] ?? ''} onChange={(e) => updateRow(gi, ri, col.key, e.target.value)}
+                                  readOnly={readOnly} rows={2}
+                                  className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-purple-500 resize-y" />
+                              ) : (
+                                <input type="text" value={row[col.key] ?? ''} onChange={(e) => updateRow(gi, ri, col.key, e.target.value)}
+                                  readOnly={readOnly}
+                                  className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-purple-500" />
+                              )}
+                            </td>
+                          ))}
+                          {!readOnly && (
+                            <td className="py-2 px-1">
+                              {group.rows.length > 1 && (
+                                <button onClick={() => removeRow(gi, ri)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
+                              )}
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {!readOnly && (
+                  <button onClick={() => addRow(gi)} className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium mt-2">
+                    + {addLabel}
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
 
           {!readOnly && (
-            <button
-              onClick={addRow}
-              className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-800 font-medium mt-3"
-            >
+            <button onClick={addTaskGroup}
+              className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-800 font-medium mt-3">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              {addLabel}
+              新增任務
             </button>
           )}
         </CardBody>
