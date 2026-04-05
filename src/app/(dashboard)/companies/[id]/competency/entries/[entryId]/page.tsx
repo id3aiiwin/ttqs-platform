@@ -5,6 +5,7 @@ import { getProfile } from '@/lib/get-profile'
 import { Badge } from '@/components/ui/badge'
 import { EntryFormEditor } from '@/components/competency/entry-form-editor'
 import { JobAnalysisForm } from '@/components/competency/job-analysis-form'
+import { JobDescriptionForm } from '@/components/competency/job-description-form'
 import { ReviewPanel } from '@/components/competency/review-panel'
 
 const FORM_TYPE_LABELS: Record<string, string> = {
@@ -116,6 +117,22 @@ export default async function EntryDetailPage({
           {/* Form fields */}
           {entry.form_type === 'job_analysis' ? (
             <JobAnalysisForm
+              entryId={entryId}
+              companyId={companyId}
+              fields={(templateFields ?? []).map((f) => ({
+                ...f,
+                description: (f.options as Record<string, unknown> | null)?.description as string | null ?? null,
+              }))}
+              values={(fieldValues ?? []).map((v) => ({
+                id: v.id,
+                field_name: v.field_name,
+                value: v.value,
+              }))}
+              isConsultant={isConsultant}
+              readOnly={entry.status === 'approved'}
+            />
+          ) : entry.form_type === 'job_description' ? (
+            <JobDescriptionForm
               entryId={entryId}
               companyId={companyId}
               fields={(templateFields ?? []).map((f) => ({
