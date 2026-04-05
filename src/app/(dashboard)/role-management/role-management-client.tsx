@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ROLE_LABELS } from '@/lib/utils'
 
-const ALL_ROLES = ['consultant', 'admin', 'instructor', 'supervisor', 'analyst', 'hr', 'manager', 'employee', 'student']
+const ALL_ROLES = ['consultant', 'admin', 'instructor', 'analyst', 'hr', 'manager', 'employee', 'student']
 
 interface User {
   id: string; full_name: string | null; email: string; role: string; roles: string[]

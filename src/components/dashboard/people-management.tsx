@@ -113,7 +113,7 @@ export function PeopleManagement({ people, companyMap, courses, ordersByPerson, 
           className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white">
           <option value="">全部角色</option>
           <option value="instructor">講師</option>
-          <option value="analyst">分析師</option>
+          <option value="analyst">生命教練</option>
           <option value="student">個人學員</option>
           <option value="employee">企業員工</option>
         </select>
@@ -174,7 +174,7 @@ export function PeopleManagement({ people, companyMap, courses, ordersByPerson, 
                     </div>
                   )}
                   {hasAnalyst && (
-                    <div className="text-xs text-gray-500">{p.analyst_level ?? '三級皮紋評量分析師'}</div>
+                    <div className="text-xs text-gray-500">{p.analyst_level ?? '三級生命教練'}</div>
                   )}
                   {(p.total_spending ?? 0) > 0 && (
                     <div className="text-xs text-gray-400">消費 NT${(p.total_spending ?? 0).toLocaleString()}</div>
@@ -234,7 +234,7 @@ function PersonDetailModal({ person: p, companyMap, courses, ordersByPerson, sur
   const tabs = [
     { id: 'info', label: '基本資料' },
     ...(hasInstructor ? [{ id: 'instructor', label: '講師資料' }] : []),
-    ...(hasAnalyst ? [{ id: 'analyst', label: '分析師' }] : []),
+    ...(hasAnalyst ? [{ id: 'analyst', label: '生命教練' }] : []),
     { id: 'talent', label: '評量報告' },
     { id: 'learning', label: '學習履歷' },
     { id: 'purchases', label: '購買紀錄' },
@@ -381,7 +381,7 @@ function PersonDetailModal({ person: p, companyMap, courses, ordersByPerson, sur
           {tab === 'analyst' && (
             <div>
               <div className="grid grid-cols-2 gap-3 mb-4">
-                <MiniStat label="等級" value={p.analyst_level ?? '三級皮紋評量分析師'} />
+                <MiniStat label="等級" value={p.analyst_level ?? '三級生命教練'} />
                 <MiniStat label="個案管理" value="查看個案頁面" />
               </div>
               <Link href="/analyst-cases" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">前往個案管理 →</Link>
@@ -738,7 +738,7 @@ function StudentCreateEditModal({ mode, person, companyMap, onClose }: {
                 <option value="student">個人學員</option>
                 <option value="employee">企業員工</option>
                 <option value="instructor">講師</option>
-                <option value="analyst">皮紋評量分析師</option>
+                <option value="analyst">生命教練</option>
               </select>
             </div>
           </div>
