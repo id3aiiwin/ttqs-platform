@@ -43,6 +43,53 @@ export async function initCompetencyTemplates(companyId: string) {
   revalidatePath(`/companies/${companyId}/competency`)
 }
 
+/** 刪除員工表單實例 */
+export async function deleteFormEntry(entryId: string, companyId: string) {
+  const supabase = createServiceClient()
+
+  // 先刪除欄位值
+  await supabase.from('competency_form_entry_values').delete().eq('entry_id', entryId)
+  // 再刪除 entry
+  const { error } = await supabase.from('competency_form_entries').delete().eq('id', entryId)
+
+  if (error) return { error: error.message }
+  revalidatePath(`/companies/${companyId}/competency`)
+  return {}
+}
+
+/** 重新載入公版模板（刪除舊的再重新複製） */
+export async function resetCompetencyTemplates(companyId: string) {
+  const supabase = createServiceClient()
+
+  // 刪除企業現有模板
+  await supabase.from('competency_form_templates').delete().eq('company_id', companyId)
+
+  // 重新從公版複製
+  const { data: defaults } = await supabase
+    .from('competency_form_defaults')
+    .select('*')
+    .order('form_type')
+    .order('sort_order')
+
+  if (!defaults || defaults.length === 0) return
+
+  const templates = defaults.map((d) => ({
+    company_id: companyId,
+    form_type: d.form_type,
+    default_field_id: d.id,
+    field_name: d.field_name,
+    standard_name: d.standard_name,
+    display_name: d.standard_name,
+    field_type: d.field_type,
+    is_required: d.is_required,
+    options: d.options,
+    sort_order: d.sort_order,
+  }))
+
+  await supabase.from('competency_form_templates').insert(templates)
+  revalidatePath(`/companies/${companyId}/competency`)
+}
+
 /** 建立員工表單實例 */
 export async function createFormEntry(
   companyId: string,

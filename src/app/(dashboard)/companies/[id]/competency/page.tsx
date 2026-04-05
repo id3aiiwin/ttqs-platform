@@ -6,6 +6,8 @@ import { Card, CardHeader, CardBody } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { InitCompetencyButton } from '@/components/competency/init-competency-button'
 import { CreateEntryButton } from '@/components/competency/create-entry-button'
+import { DeleteEntryButton } from '@/components/competency/delete-entry-button'
+import { ResetTemplatesButton } from '@/components/competency/reset-templates-button'
 import { CompetencyMatrix } from '@/components/competency/competency-matrix'
 
 export const metadata = { title: '職能管理 | ID3A 管理平台' }
@@ -127,12 +129,15 @@ export default async function CompetencyPage({
             <p className="text-gray-500 text-sm mt-1">{company.name}</p>
           </div>
           {isConsultant && hasTemplates && (
-            <Link
-              href={`/companies/${id}/competency/templates`}
-              className="text-sm font-medium text-indigo-600 hover:text-indigo-700 border border-indigo-200 rounded-lg px-3 py-1.5"
-            >
-              編輯模板
-            </Link>
+            <div className="flex items-center gap-2">
+              <ResetTemplatesButton companyId={id} />
+              <Link
+                href={`/companies/${id}/competency/templates`}
+                className="text-sm font-medium text-indigo-600 hover:text-indigo-700 border border-indigo-200 rounded-lg px-3 py-1.5"
+              >
+                編輯模板
+              </Link>
+            </div>
           )}
         </div>
       </div>
@@ -218,6 +223,9 @@ export default async function CompetencyPage({
                         <span className="text-xs text-gray-400">
                           {new Date(entry.updated_at).toLocaleDateString('zh-TW')}
                         </span>
+                        {isConsultant && (
+                          <DeleteEntryButton entryId={entry.id} companyId={id} employeeName={emp?.name ?? '未知'} />
+                        )}
                         <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
