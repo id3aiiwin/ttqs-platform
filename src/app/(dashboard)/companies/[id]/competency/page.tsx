@@ -87,17 +87,7 @@ export default async function CompetencyPage({
     .select('id, full_name, email')
     .eq('company_id', id)
 
-  // 也加入顧問自己（方便測試）
-  const { data: currentUser } = await serviceClient
-    .from('profiles')
-    .select('id, full_name, email')
-    .eq('id', user.id)
-    .single()
-
   const allPeople = [...(employees ?? [])]
-  if (currentUser && !allPeople.find((p) => p.id === currentUser.id)) {
-    allPeople.push(currentUser)
-  }
 
   const employeeMap: Record<string, { name: string; email: string }> = {}
   allPeople.forEach((e) => {
