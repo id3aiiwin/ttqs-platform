@@ -61,3 +61,23 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: true })
 }
+
+export async function DELETE(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: '未登入' }, { status: 401 })
+
+  const profile = await getProfile(user.id)
+  if (profile?.role !== 'consultant' && profile?.role !== 'admin') {
+    return NextResponse.json({ error: '僅顧問或行政人員可刪除' }, { status: 403 })
+  }
+
+  const { id } = await request.json()
+  if (!id) return NextResponse.json({ error: '缺少 id' }, { status: 400 })
+
+  const sc = createServiceClient()
+  const { error } = await sc.from('talent_assessments').delete().eq('id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  return NextResponse.json({ ok: true })
+}

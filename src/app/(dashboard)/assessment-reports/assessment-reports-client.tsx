@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface Drive {
   name: string
@@ -48,6 +49,20 @@ export function AssessmentReportsClient({ assessments, companyOptions }: Props) 
   const [search, setSearch] = useState('')
   const [filterCompany, setFilterCompany] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [pending, startTransition] = useTransition()
+  const router = useRouter()
+
+  function handleDelete(id: string, name: string) {
+    if (!confirm(`確定刪除「${name}」的評量報告？此操作無法復原。`)) return
+    startTransition(async () => {
+      await fetch('/api/talent-assessment', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      router.refresh()
+    })
+  }
 
   const filtered = assessments.filter(a => {
     const matchSearch = !search || a.student_name.toLowerCase().includes(search.toLowerCase())
@@ -73,8 +88,8 @@ export function AssessmentReportsClient({ assessments, companyOptions }: Props) 
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-5">
+      {/* Filters + New button */}
+      <div className="flex flex-wrap gap-3 mb-5 items-center">
         <input
           type="text"
           placeholder="搜尋學員姓名..."
@@ -92,6 +107,9 @@ export function AssessmentReportsClient({ assessments, companyOptions }: Props) 
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
+        <Link href="/my-talent" className="ml-auto px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">
+          + 新增評量
+        </Link>
       </div>
 
       {/* Cards */}
@@ -141,11 +159,27 @@ export function AssessmentReportsClient({ assessments, companyOptions }: Props) 
                     </div>
                   )}
 
-                  <div className="mt-3 flex justify-end">
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Link
+                        href={`/my-talent?profile=${assessment.profile_id}`}
+                        onClick={e => e.stopPropagation()}
+                        className="text-xs text-indigo-600 hover:text-indigo-700 font-medium border border-indigo-200 rounded-lg px-3 py-1.5"
+                      >
+                        編輯報告
+                      </Link>
+                      <button
+                        onClick={e => { e.stopPropagation(); handleDelete(assessment.id, assessment.student_name) }}
+                        disabled={pending}
+                        className="text-xs text-red-500 hover:text-red-700 border border-red-200 rounded-lg px-3 py-1.5 disabled:opacity-50"
+                      >
+                        刪除
+                      </button>
+                    </div>
                     <Link
                       href={`/my-talent?profile=${assessment.profile_id}`}
                       onClick={e => e.stopPropagation()}
-                      className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                      className="text-xs text-gray-500 hover:text-indigo-600"
                     >
                       查看完整報告 &rarr;
                     </Link>
