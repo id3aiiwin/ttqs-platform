@@ -12,7 +12,7 @@ create table if not exists line_message_templates (
   updated_at timestamptz default now()
 );
 
-create index idx_line_templates_category on line_message_templates(category);
+create index if not exists idx_line_templates_category on line_message_templates(category);
 
 -- LINE 發送紀錄
 create table if not exists line_send_logs (
@@ -31,7 +31,7 @@ create table if not exists line_send_logs (
   created_at timestamptz default now()
 );
 
-create index idx_line_send_logs_created on line_send_logs(created_at desc);
+create index if not exists idx_line_send_logs_created on line_send_logs(created_at desc);
 
 -- RLS
 alter table line_message_templates enable row level security;

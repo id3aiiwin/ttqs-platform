@@ -37,7 +37,7 @@ function getPasswordStrength(password: string): { level: 'weak' | 'medium' | 'st
 
 export function LoginForm() {
   const router = useRouter()
-  const [mode, setMode] = useState<'login' | 'register'>('login')
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -94,6 +94,19 @@ export function LoginForm() {
     const email = formData.get('email') as string
     const pwd = formData.get('password') as string
     const supabase = createClient()
+
+    if (mode === 'forgot') {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      })
+      if (error) {
+        setError(error.message)
+      } else {
+        setSuccess('密碼重設信已發送，請查看您的信箱。')
+      }
+      setLoading(false)
+      return
+    }
 
     if (mode === 'register') {
       const name = formData.get('name') as string
@@ -157,29 +170,39 @@ export function LoginForm() {
         <Input id="name" name="name" type="text" label="姓名" placeholder="您的姓名" required autoComplete="name" />
       )}
       <Input id="email" name="email" type="email" label="電子郵件" placeholder="your@email.com" required autoComplete="email" />
-      <div>
-        <Input id="password" name="password" type="password" label="密碼" placeholder="••••••••" required
-          autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)} />
-        {mode === 'register' && password.length > 0 && (
-          <div className="mt-1.5">
-            <div className="h-1 w-full bg-gray-200 rounded-full overflow-hidden">
-              <div className={`h-full ${passwordStrength.color} ${passwordStrength.width} transition-all duration-300 rounded-full`} />
+      {mode !== 'forgot' && (
+        <div>
+          <Input id="password" name="password" type="password" label="密碼" placeholder="••••••••" required
+            autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)} />
+          {mode === 'register' && password.length > 0 && (
+            <div className="mt-1.5">
+              <div className="h-1 w-full bg-gray-200 rounded-full overflow-hidden">
+                <div className={`h-full ${passwordStrength.color} ${passwordStrength.width} transition-all duration-300 rounded-full`} />
+              </div>
+              {passwordStrength.label && (
+                <p className={`text-xs mt-0.5 ${
+                  passwordStrength.level === 'weak' ? 'text-red-600' :
+                  passwordStrength.level === 'medium' ? 'text-amber-600' : 'text-green-600'
+                }`}>
+                  密碼強度：{passwordStrength.label}
+                </p>
+              )}
             </div>
-            {passwordStrength.label && (
-              <p className={`text-xs mt-0.5 ${
-                passwordStrength.level === 'weak' ? 'text-red-600' :
-                passwordStrength.level === 'medium' ? 'text-amber-600' : 'text-green-600'
-              }`}>
-                密碼強度：{passwordStrength.label}
-              </p>
-            )}
-          </div>
-        )}
-      </div>
+          )}
+          {mode === 'login' && (
+            <button type="button" onClick={() => { setMode('forgot'); setError(null); setSuccess(null) }}
+              className="text-xs text-gray-400 hover:text-indigo-600 mt-1.5 block">忘記密碼？</button>
+          )}
+        </div>
+      )}
 
-      {isLocked && (
+      {mode === 'forgot' && (
+        <p className="text-sm text-gray-500">請輸入您的電子郵件，我們將發送密碼重設連結。</p>
+      )}
+
+      {isLocked && mode === 'login' && (
         <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700">
           帳號已暫時鎖定，請等待 {lockoutMinutes}:{lockoutSeconds.toString().padStart(2, '0')} 後再試。
         </div>
@@ -189,16 +212,21 @@ export function LoginForm() {
       {success && <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">{success}</div>}
 
       <Button type="submit" loading={loading} disabled={isLocked && mode === 'login'} className="w-full mt-2">
-        {mode === 'login' ? '登入' : '註冊'}
+        {mode === 'login' ? '登入' : mode === 'register' ? '註冊' : '發送重設連結'}
       </Button>
 
-      <div className="text-center">
-        {mode === 'login' ? (
+      <div className="text-center space-y-1">
+        {mode === 'login' && (
           <button type="button" onClick={() => { setMode('register'); setError(null); setSuccess(null); setPassword('') }}
-            className="text-sm text-indigo-600 hover:text-indigo-700">還沒有帳號？立即註冊</button>
-        ) : (
+            className="text-sm text-indigo-600 hover:text-indigo-700 block w-full">還沒有帳號？立即註冊</button>
+        )}
+        {mode === 'register' && (
           <button type="button" onClick={() => { setMode('login'); setError(null); setSuccess(null); setPassword('') }}
-            className="text-sm text-indigo-600 hover:text-indigo-700">已有帳號？返回登入</button>
+            className="text-sm text-indigo-600 hover:text-indigo-700 block w-full">已有帳號？返回登入</button>
+        )}
+        {mode === 'forgot' && (
+          <button type="button" onClick={() => { setMode('login'); setError(null); setSuccess(null) }}
+            className="text-sm text-indigo-600 hover:text-indigo-700 block w-full">返回登入</button>
         )}
       </div>
     </form>

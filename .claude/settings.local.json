@@ -64,7 +64,9 @@
       "Bash(ls /Users/enchi/ttqs-platform/src/app/\\\\\\(dashboard\\\\\\)/quiz-results/)",
       "Bash(git -C /Users/enchi/ttqs-platform init --initial-branch=main)",
       "Bash(git -C /Users/enchi/ttqs-platform status --short)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git -C /Users/enchi/ttqs-platform diff --cached -- \"*.env*\" \"*.pem\" \"*secret*\")",
+      "Bash(git:*)"
     ]
   }
 }
