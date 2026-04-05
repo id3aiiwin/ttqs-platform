@@ -527,7 +527,7 @@ export type Database = {
           form_type: 'job_analysis' | 'job_description' | 'competency_standard' | 'competency_assessment'
           field_name: string
           standard_name: string
-          field_type: 'text' | 'textarea' | 'select' | 'rating' | 'checkbox' | 'number' | 'date'
+          field_type: 'text' | 'textarea' | 'select' | 'rating' | 'checkbox' | 'number' | 'date' | 'repeating_group' | 'table'
           is_required: boolean
           options: Record<string, unknown> | null
           description: string | null
@@ -539,7 +539,7 @@ export type Database = {
           form_type: 'job_analysis' | 'job_description' | 'competency_standard' | 'competency_assessment'
           field_name: string
           standard_name: string
-          field_type?: 'text' | 'textarea' | 'select' | 'rating' | 'checkbox' | 'number' | 'date'
+          field_type?: 'text' | 'textarea' | 'select' | 'rating' | 'checkbox' | 'number' | 'date' | 'repeating_group' | 'table'
           is_required?: boolean
           options?: Record<string, unknown> | null
           description?: string | null
@@ -548,7 +548,7 @@ export type Database = {
         Update: {
           field_name?: string
           standard_name?: string
-          field_type?: 'text' | 'textarea' | 'select' | 'rating' | 'checkbox' | 'number' | 'date'
+          field_type?: 'text' | 'textarea' | 'select' | 'rating' | 'checkbox' | 'number' | 'date' | 'repeating_group' | 'table'
           is_required?: boolean
           options?: Record<string, unknown> | null
           description?: string | null
@@ -565,7 +565,7 @@ export type Database = {
           field_name: string
           standard_name: string | null
           display_name: string | null
-          field_type: 'text' | 'textarea' | 'select' | 'rating' | 'checkbox' | 'number' | 'date'
+          field_type: 'text' | 'textarea' | 'select' | 'rating' | 'checkbox' | 'number' | 'date' | 'repeating_group' | 'table'
           is_required: boolean
           options: Record<string, unknown> | null
           sort_order: number
@@ -580,7 +580,7 @@ export type Database = {
           field_name: string
           standard_name?: string | null
           display_name?: string | null
-          field_type?: 'text' | 'textarea' | 'select' | 'rating' | 'checkbox' | 'number' | 'date'
+          field_type?: 'text' | 'textarea' | 'select' | 'rating' | 'checkbox' | 'number' | 'date' | 'repeating_group' | 'table'
           is_required?: boolean
           options?: Record<string, unknown> | null
           sort_order?: number
@@ -588,7 +588,7 @@ export type Database = {
         Update: {
           field_name?: string
           display_name?: string | null
-          field_type?: 'text' | 'textarea' | 'select' | 'rating' | 'checkbox' | 'number' | 'date'
+          field_type?: 'text' | 'textarea' | 'select' | 'rating' | 'checkbox' | 'number' | 'date' | 'repeating_group' | 'table'
           is_required?: boolean
           options?: Record<string, unknown> | null
           sort_order?: number
@@ -1028,4 +1028,4 @@ export type LineSendLog = Database['public']['Tables']['line_send_logs']['Row']
 
 // 職能表單型別
 export type CompetencyFormType = 'job_analysis' | 'job_description' | 'competency_standard' | 'competency_assessment'
-export type FormFieldType = 'text' | 'textarea' | 'select' | 'rating' | 'checkbox' | 'number' | 'date'
+export type FormFieldType = 'text' | 'textarea' | 'select' | 'rating' | 'checkbox' | 'number' | 'date' | 'repeating_group' | 'table'

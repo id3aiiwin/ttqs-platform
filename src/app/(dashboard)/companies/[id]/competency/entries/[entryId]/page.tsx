@@ -4,6 +4,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { Badge } from '@/components/ui/badge'
 import { EntryFormEditor } from '@/components/competency/entry-form-editor'
+import { JobAnalysisForm } from '@/components/competency/job-analysis-form'
 import { ReviewPanel } from '@/components/competency/review-panel'
 
 const FORM_TYPE_LABELS: Record<string, string> = {
@@ -110,13 +111,31 @@ export default async function EntryDetailPage({
           </div>
 
           {/* Form fields */}
-          <EntryFormEditor
-            entryId={entryId}
-            companyId={companyId}
-            fields={templateFields ?? []}
-            valuesMap={valuesMap}
-            readOnly={entry.status === 'approved'}
-          />
+          {entry.form_type === 'job_analysis' ? (
+            <JobAnalysisForm
+              entryId={entryId}
+              companyId={companyId}
+              fields={(templateFields ?? []).map((f) => ({
+                ...f,
+                description: (f.options as Record<string, unknown> | null)?.description as string | null ?? null,
+              }))}
+              values={(fieldValues ?? []).map((v) => ({
+                id: v.id,
+                field_name: v.field_name,
+                value: v.value,
+              }))}
+              isConsultant={isConsultant}
+              readOnly={entry.status === 'approved'}
+            />
+          ) : (
+            <EntryFormEditor
+              entryId={entryId}
+              companyId={companyId}
+              fields={templateFields ?? []}
+              valuesMap={valuesMap}
+              readOnly={entry.status === 'approved'}
+            />
+          )}
         </div>
       </div>
 
