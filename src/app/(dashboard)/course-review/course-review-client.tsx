@@ -1,6 +1,8 @@
 'use client'
 
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 
 interface Course {
@@ -47,6 +49,37 @@ function isMaterialOverdue(startDate: string | null, submitDate: string | null):
 }
 
 export function CourseReviewClient({ pending, recent, companyMap, satisfactionMap }: Props) {
+  const [rejectingId, setRejectingId] = useState<string | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
+  const [pending2, startTransition] = useTransition()
+  const router = useRouter()
+
+  function handleApprove(courseId: string) {
+    if (!confirm('確定核准此課程？核准後將計入講師時數。')) return
+    startTransition(async () => {
+      await fetch('/api/course-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ course_id: courseId, action: 'approve' }),
+      })
+      router.refresh()
+    })
+  }
+
+  function handleReject(courseId: string) {
+    if (!rejectReason.trim()) { alert('請填寫退回原因'); return }
+    startTransition(async () => {
+      await fetch('/api/course-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ course_id: courseId, action: 'reject', reason: rejectReason }),
+      })
+      setRejectingId(null)
+      setRejectReason('')
+      router.refresh()
+    })
+  }
+
   return (
     <div className="space-y-6">
       {/* 待審核 */}
@@ -127,11 +160,31 @@ export function CourseReviewClient({ pending, recent, companyMap, satisfactionMa
                           </span>
                         ) : <span className="text-xs text-gray-400">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        <Link href={`/courses?selected=${c.id}`}
-                          className="inline-block px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700">
-                          審核
-                        </Link>
+                      <td className="px-4 py-3">
+                        {rejectingId === c.id ? (
+                          <div className="flex items-center gap-2">
+                            <input value={rejectReason} onChange={e => setRejectReason(e.target.value)}
+                              placeholder="退回原因..." className="text-xs border border-gray-300 rounded px-2 py-1 w-32" autoFocus />
+                            <button onClick={() => handleReject(c.id)} disabled={pending2}
+                              className="text-xs bg-red-600 text-white rounded px-2 py-1 hover:bg-red-700 disabled:opacity-50">確定</button>
+                            <button onClick={() => { setRejectingId(null); setRejectReason('') }}
+                              className="text-xs text-gray-400">取消</button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => handleApprove(c.id)} disabled={pending2}
+                              className="text-xs bg-green-600 text-white rounded-lg px-3 py-1.5 hover:bg-green-700 disabled:opacity-50">
+                              核准
+                            </button>
+                            <button onClick={() => setRejectingId(c.id)} disabled={pending2}
+                              className="text-xs bg-red-50 text-red-600 border border-red-200 rounded-lg px-3 py-1.5 hover:bg-red-100 disabled:opacity-50">
+                              不核准
+                            </button>
+                            <Link href={`/courses?selected=${c.id}`} className="text-xs text-gray-400 hover:text-indigo-600">
+                              詳情
+                            </Link>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   )

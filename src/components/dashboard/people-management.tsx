@@ -218,7 +218,7 @@ function PersonDetailModal({ person: p, companyMap, courses, ordersByPerson, sur
     ...(hasInstructor ? [{ id: 'instructor', label: '講師資料' }] : []),
     ...(hasAnalyst ? [{ id: 'analyst', label: '分析師' }] : []),
     { id: 'talent', label: '評量報告' },
-    ...(hasStudent ? [{ id: 'learning', label: '學習履歷' }] : []),
+    { id: 'learning', label: '學習履歷' },
     { id: 'purchases', label: '購買紀錄' },
     { id: 'surveys', label: '問卷紀錄' },
   ]
@@ -376,14 +376,18 @@ function PersonDetailModal({ person: p, companyMap, courses, ordersByPerson, sur
           )}
 
           {tab === 'learning' && (
-            <div className="text-center py-6">
-              {p.company_id ? (
-                <Link href={`/companies/${p.company_id}/employees/${p.id}/passport`} className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">
-                  📚 查看學習護照
+            <div className="space-y-3">
+              {p.company_id && (
+                <Link href={`/companies/${p.company_id}/employees/${p.id}/passport`} className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 mb-3">
+                  📚 查看企業學習護照
                 </Link>
-              ) : (
-                <p className="text-sm text-gray-400">此學員無企業歸屬，學習紀錄請從課程管理查看</p>
               )}
+              <Link href={`/my-history?user=${p.id}`} className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">
+                📋 查看完整學習履歷
+              </Link>
+              <Link href={`/my-quizzes?user=${p.id}`} className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">
+                🧪 查看測驗紀錄
+              </Link>
             </div>
           )}
 
