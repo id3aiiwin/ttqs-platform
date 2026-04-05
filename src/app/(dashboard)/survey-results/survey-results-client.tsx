@@ -232,15 +232,19 @@ export function SurveyResultsClient({ surveyData, respondentData, companyOptions
                     <th className="px-4 py-3 text-left">企業</th>
                     <th className="px-4 py-3 text-left">講師</th>
                     <th className="px-4 py-3 text-left">日期</th>
-                    <th className="px-4 py-3 text-right">回覆數</th>
-                    <th className="px-4 py-3 text-right">平均分</th>
+                    <th className="px-4 py-3 text-right">回覆</th>
+                    <th className="px-4 py-3 text-right">學習效果</th>
+                    <th className="px-4 py-3 text-right">課程評價</th>
+                    <th className="px-4 py-3 text-right">講師評價</th>
+                    <th className="px-4 py-3 text-right">場地</th>
+                    <th className="px-4 py-3 text-right">整體平均</th>
                     <th className="px-4 py-3 text-center">狀態</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filteredSurveys.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                      <td colSpan={11} className="px-4 py-8 text-center text-gray-400">
                         尚無問卷資料
                       </td>
                     </tr>
@@ -261,12 +265,30 @@ export function SurveyResultsClient({ surveyData, respondentData, companyOptions
                         <td className="px-4 py-3 text-right text-gray-700">{s.responseCount}</td>
                         <td className="px-4 py-3 text-right">
                           {s.responseCount > 0 ? (
+                            <span className={`text-xs font-medium ${scoreColor(s.sectionAvgs.learning)}`}>{s.sectionAvgs.learning.toFixed(1)}</span>
+                          ) : <span className="text-gray-400">-</span>}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {s.responseCount > 0 ? (
+                            <span className={`text-xs font-medium ${scoreColor(s.sectionAvgs.course)}`}>{s.sectionAvgs.course.toFixed(1)}</span>
+                          ) : <span className="text-gray-400">-</span>}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {s.responseCount > 0 ? (
+                            <span className={`text-xs font-medium ${scoreColor(s.sectionAvgs.instructor)}`}>{s.sectionAvgs.instructor.toFixed(1)}</span>
+                          ) : <span className="text-gray-400">-</span>}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {s.responseCount > 0 ? (
+                            <span className={`text-xs font-medium ${scoreColor(s.sectionAvgs.venue)}`}>{s.sectionAvgs.venue.toFixed(1)}</span>
+                          ) : <span className="text-gray-400">-</span>}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {s.responseCount > 0 ? (
                             <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${scoreBgColor(s.overallAvg)}`}>
                               {s.overallAvg.toFixed(2)}
                             </span>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
+                          ) : <span className="text-gray-400">-</span>}
                         </td>
                         <td className="px-4 py-3 text-center">
                           <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -278,7 +300,7 @@ export function SurveyResultsClient({ surveyData, respondentData, companyOptions
                       </tr>
                       {expandedSurvey === s.id && (
                         <tr>
-                          <td colSpan={7} className="px-4 py-4 bg-gray-50">
+                          <td colSpan={11} className="px-4 py-4 bg-gray-50">
                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                               <div className="bg-white rounded-lg border border-gray-200 p-3">
                                 <p className="text-xs text-gray-500 mb-1">學習效果</p>
