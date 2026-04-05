@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { ROLE_LABELS } from '@/lib/utils'
@@ -58,6 +59,7 @@ export function PeopleManagement({ people, companyMap, courses, ordersByPerson, 
   const [filterLevel, setFilterLevel] = useState('')
   const [sortBy, setSortBy] = useState<'name' | 'birthday' | 'spending'>('name')
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null)
+  const [showCreateEdit, setShowCreateEdit] = useState<'create' | Person | null>(null)
 
   let filtered = people.filter(p => {
     if (search && !(p.full_name ?? '').toLowerCase().includes(search.toLowerCase()) && !p.email.toLowerCase().includes(search.toLowerCase()) && !(p.phone ?? '').includes(search)) return false
@@ -103,6 +105,10 @@ export function PeopleManagement({ people, companyMap, courses, ordersByPerson, 
       <div className="flex gap-2 mb-4">
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="搜尋姓名、email、電話..."
           className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        <button onClick={() => setShowCreateEdit('create')}
+          className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 whitespace-nowrap">
+          + 新增學員
+        </button>
         <select value={filterRole} onChange={e => setFilterRole(e.target.value)}
           className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white">
           <option value="">全部角色</option>
@@ -190,6 +196,17 @@ export function PeopleManagement({ people, companyMap, courses, ordersByPerson, 
           ordersByPerson={ordersByPerson}
           surveyHistory={surveyHistory}
           onClose={() => setSelectedPerson(null)}
+          onEdit={() => { setShowCreateEdit(selectedPerson); setSelectedPerson(null) }}
+        />
+      )}
+
+      {/* 新增/編輯學員 Modal */}
+      {showCreateEdit && (
+        <StudentCreateEditModal
+          mode={showCreateEdit === 'create' ? 'create' : 'edit'}
+          person={showCreateEdit !== 'create' ? showCreateEdit : undefined}
+          companyMap={companyMap}
+          onClose={() => setShowCreateEdit(null)}
         />
       )}
     </>
@@ -197,11 +214,12 @@ export function PeopleManagement({ people, companyMap, courses, ordersByPerson, 
 }
 
 // ===== 人員詳情 Modal =====
-function PersonDetailModal({ person: p, companyMap, courses, ordersByPerson, surveyHistory, onClose }: {
+function PersonDetailModal({ person: p, companyMap, courses, ordersByPerson, surveyHistory, onClose, onEdit }: {
   person: Person; companyMap: Record<string, string>; courses: CourseRecord[]
   ordersByPerson?: Record<string, { id: string; product_name: string | null; amount: number; status: string; created_at: string }[]>
   surveyHistory?: Record<string, SurveyRecord[]>
   onClose: () => void
+  onEdit?: () => void
 }) {
   const [tab, setTab] = useState('info')
   const [expandedCourses, setExpandedCourses] = useState<Set<string>>(new Set())
@@ -248,7 +266,10 @@ function PersonDetailModal({ person: p, companyMap, courses, ordersByPerson, sur
                 ))}
               </div>
             </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+            <div className="flex items-center gap-2">
+              {onEdit && <button onClick={onEdit} className="text-xs text-indigo-600 hover:text-indigo-700 border border-indigo-200 rounded-lg px-3 py-1.5">編輯</button>}
+              <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+            </div>
           </div>
 
           {/* Tabs */}
@@ -494,6 +515,179 @@ function MiniStat({ label, value }: { label: string; value: string }) {
     <div className="bg-gray-50 rounded-lg p-3 text-center">
       <p className="text-xs text-gray-400">{label}</p>
       <p className="text-sm font-bold text-gray-900 mt-0.5">{value}</p>
+    </div>
+  )
+}
+
+// ===== 新增/編輯學員 Modal =====
+const PATTERN_OPTIONS = ['正箕', '反箕', '弧形', '帳蓬弧', '環形', '雙箕', '螺旋', '孔雀眼']
+
+function StudentCreateEditModal({ mode, person, companyMap, onClose }: {
+  mode: 'create' | 'edit'
+  person?: Person
+  companyMap: Record<string, string>
+  onClose: () => void
+}) {
+  const router = useRouter()
+  const [pending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+
+  const [form, setForm] = useState({
+    full_name: person?.full_name ?? '',
+    email: person?.email ?? '',
+    phone: person?.phone ?? '',
+    birthday: person?.birthday ?? '',
+    gender: person?.gender ?? '',
+    company_id: person?.company_id ?? '',
+    job_title: person?.job_title ?? '',
+    role: (person?.roles?.[0] ?? person?.role) || 'student',
+    r1_pattern: person?.r1_pattern ?? '',
+    l2_pattern: person?.l2_pattern ?? '',
+    customer_level: person?.customer_level ?? '',
+  })
+
+  function updateForm(key: string, value: string) {
+    setForm(prev => ({ ...prev, [key]: value }))
+  }
+
+  function handleSubmit() {
+    if (!form.email.trim()) { setError('Email 為必填'); return }
+    setError(null)
+
+    startTransition(async () => {
+      const url = '/api/student-profiles'
+      const method = mode === 'create' ? 'POST' : 'PATCH'
+      const body = mode === 'edit' ? { id: person?.id, ...form } : form
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (data.error) {
+        setError(data.error)
+      } else {
+        setSuccess(true)
+        setTimeout(() => { onClose(); router.refresh() }, 1000)
+      }
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-gray-900">{mode === 'create' ? '新增學員' : '編輯學員資料'}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+
+        <div className="px-6 py-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-500">姓名</label>
+              <input value={form.full_name} onChange={e => updateForm('full_name', e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mt-0.5" placeholder="學員姓名" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">Email *</label>
+              <input value={form.email} onChange={e => updateForm('email', e.target.value)}
+                type="email" disabled={mode === 'edit'}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mt-0.5 disabled:bg-gray-50" placeholder="email@example.com" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">電話</label>
+              <input value={form.phone} onChange={e => updateForm('phone', e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mt-0.5" placeholder="0912-345-678" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">生日</label>
+              <input type="date" value={form.birthday} onChange={e => updateForm('birthday', e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mt-0.5" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">性別</label>
+              <select value={form.gender} onChange={e => updateForm('gender', e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mt-0.5 bg-white">
+                <option value="">未填</option>
+                <option value="male">男</option>
+                <option value="female">女</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">企業</label>
+              <select value={form.company_id} onChange={e => updateForm('company_id', e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mt-0.5 bg-white">
+                <option value="">無（個人學員）</option>
+                {Object.entries(companyMap).map(([id, name]) => (
+                  <option key={id} value={id}>{name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">職稱</label>
+              <input value={form.job_title} onChange={e => updateForm('job_title', e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mt-0.5" placeholder="業務專員" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500">角色</label>
+              <select value={form.role} onChange={e => updateForm('role', e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mt-0.5 bg-white">
+                <option value="student">個人學員</option>
+                <option value="employee">企業員工</option>
+                <option value="instructor">講師</option>
+                <option value="analyst">皮紋評量分析師</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-100 pt-3">
+            <p className="text-xs font-medium text-gray-500 mb-2">紋型資料</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-500">R1 管理力</label>
+                <select value={form.r1_pattern} onChange={e => updateForm('r1_pattern', e.target.value)}
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mt-0.5 bg-white">
+                  <option value="">未填</option>
+                  {PATTERN_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">L2 心像力</label>
+                <select value={form.l2_pattern} onChange={e => updateForm('l2_pattern', e.target.value)}
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mt-0.5 bg-white">
+                  <option value="">未填</option>
+                  {PATTERN_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-gray-500">客戶分級</label>
+            <input value={form.customer_level} onChange={e => updateForm('customer_level', e.target.value)}
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mt-0.5" placeholder="例：VIP" />
+          </div>
+
+          {mode === 'create' && (
+            <p className="text-xs text-gray-400 bg-gray-50 rounded-lg p-3">
+              建立後系統會用此 Email 建立帳號（預設密碼 id3a）。學員未來用同一個 Email 註冊時，資料會自動帶入。
+            </p>
+          )}
+
+          {error && <div className="text-xs text-red-600 bg-red-50 rounded-lg p-3">{error}</div>}
+          {success && <div className="text-xs text-green-600 bg-green-50 rounded-lg p-3">{mode === 'create' ? '學員建立成功！' : '資料更新成功！'}</div>}
+        </div>
+
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg">取消</button>
+          <button onClick={handleSubmit} disabled={pending || success}
+            className="px-4 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium disabled:opacity-50">
+            {pending ? '處理中...' : mode === 'create' ? '建立學員' : '儲存變更'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
