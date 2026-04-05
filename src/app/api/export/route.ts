@@ -110,11 +110,36 @@ export async function GET(request: NextRequest) {
       title = `${course.title} — 學員資料`
     }
 
-    // 取得該企業所有員工（含擴充欄位）
+    // 優先取得已選學員，若無則 fallback 到全部員工
     const cid = course?.company_id
-    const { data: students } = cid
-      ? await sc.from('profiles').select('id, full_name, email, role, department_id, job_title, hire_date, birthday, r1_pattern, l2_pattern').eq('company_id', cid)
-      : { data: [] }
+    const { data: enrollments } = await sc
+      .from('course_enrollments')
+      .select('employee_id, status')
+      .eq('course_id', courseId)
+
+    const enrolledIds = (enrollments ?? []).map(e => e.employee_id)
+    const enrollmentStatusMap: Record<string, string> = {}
+    enrollments?.forEach(e => { enrollmentStatusMap[e.employee_id] = e.status })
+
+    let students: { id: string; full_name: string | null; email: string; role: string; department_id: string | null; job_title: string | null; hire_date: string | null; birthday: string | null; r1_pattern: string | null; l2_pattern: string | null }[] | null = null
+
+    if (enrolledIds.length > 0) {
+      // Only export enrolled students
+      const { data } = await sc
+        .from('profiles')
+        .select('id, full_name, email, role, department_id, job_title, hire_date, birthday, r1_pattern, l2_pattern')
+        .in('id', enrolledIds)
+      students = data
+    } else if (cid) {
+      // Fallback: all company employees
+      const { data } = await sc
+        .from('profiles')
+        .select('id, full_name, email, role, department_id, job_title, hire_date, birthday, r1_pattern, l2_pattern')
+        .eq('company_id', cid)
+      students = data
+    } else {
+      students = []
+    }
 
     // Check which students have full talent assessments
     const studentIds = (students ?? []).map(s => s.id).filter(Boolean) as string[]
@@ -136,9 +161,12 @@ export async function GET(request: NextRequest) {
       return `${years} 年`
     }
 
+    const hasEnrollments = enrolledIds.length > 0
+    const enrollStatusLabels: Record<string, string> = { enrolled: '已選訓', completed: '已完成' }
+
     tableHtml = `
       <table>
-        <thead><tr><th>姓名</th><th>部門</th><th>職稱</th><th>年資</th><th>到職日</th><th>生日</th><th>Email</th><th>R1 管理力</th><th>L2 心像力</th><th>完整評量</th></tr></thead>
+        <thead><tr><th>姓名</th><th>部門</th><th>職稱</th><th>年資</th><th>到職日</th><th>生日</th><th>Email</th><th>R1 管理力</th><th>L2 心像力</th><th>完整評量</th>${hasEnrollments ? '<th>參訓狀態</th>' : ''}</tr></thead>
         <tbody>
           ${(students ?? []).map(e => `<tr>
             <td>${esc(e.full_name ?? '')}</td>
@@ -151,6 +179,7 @@ export async function GET(request: NextRequest) {
             <td>${esc(e.r1_pattern ?? '')}</td>
             <td>${esc(e.l2_pattern ?? '')}</td>
             <td>${assessedIds.has(e.id) ? '\u2713' : ''}</td>
+            ${hasEnrollments ? `<td>${esc(enrollStatusLabels[enrollmentStatusMap[e.id]] ?? enrollmentStatusMap[e.id] ?? '')}</td>` : ''}
           </tr>`).join('')}
         </tbody>
       </table>

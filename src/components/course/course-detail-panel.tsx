@@ -12,6 +12,7 @@ import { CourseTracking } from './course-tracking'
 import { CourseRegistrations } from './course-registrations'
 import { SatisfactionInput } from '@/components/survey/satisfaction-input'
 import { CourseAdminTools } from './course-admin-tools'
+import { CourseEnrollmentManager } from './course-enrollment-manager'
 import { CourseReviewPanel } from './course-review-panel'
 import { LineInstructorNotify } from './line-instructor-notify'
 import { CourseDetailTabs } from './course-detail-tabs'
@@ -174,6 +175,18 @@ export function CourseDetailPanel({ course, forms, photos, notes, tracking, regi
             <Badge variant={status.variant}>{status.label}</Badge>
           </div>
         </div>
+
+        {/* 參訓學員 */}
+        {(isConsultant || role === 'admin') && (
+          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-5">
+            <CourseEnrollmentManager
+              courseId={course.id}
+              companyId={companyId}
+              courseType={course.course_type ?? 'enterprise'}
+              isConsultant={isConsultant}
+            />
+          </div>
+        )}
 
         {/* 上課照片 */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-5">
