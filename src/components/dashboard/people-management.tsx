@@ -503,6 +503,7 @@ function InlineLearningTab({ personId, personName, companyId }: { personId: stri
   const [data, setData] = useState<{
     enrollments: { id: string; course_title: string; course_date: string | null; course_hours: number | null; course_trainer: string | null; status: string; completion_date: string | null }[]
     quizAttempts: { id: string; quiz_title: string; score: number | null; total: number | null; percentage: number | null; passed: boolean; completed_at: string }[]
+    licenses: { id: string; product_title: string; product_type: string }[]
   } | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -524,10 +525,11 @@ function InlineLearningTab({ personId, personName, companyId }: { personId: stri
   return (
     <div className="space-y-4">
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         <MiniStat label="參訓課程" value={String(data.enrollments.length)} />
         <MiniStat label="總時數" value={`${totalHours}h`} />
         <MiniStat label="測驗通過率" value={data.quizAttempts.length > 0 ? `${quizPassRate}%` : '—'} />
+        <MiniStat label="已購產品" value={String(data.licenses?.length ?? 0)} />
       </div>
 
       {/* Enrollments */}
@@ -580,6 +582,23 @@ function InlineLearningTab({ personId, personName, companyId }: { personId: stri
           </div>
         )}
       </div>
+
+      {/* Purchased products */}
+      {(data.licenses?.length ?? 0) > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-gray-600 mb-2">已購買產品</p>
+          <div className="space-y-1.5 max-h-32 overflow-y-auto">
+            {data.licenses.map(l => (
+              <div key={l.id} className="bg-purple-50 rounded-lg p-2.5 flex items-center justify-between">
+                <p className="text-sm text-gray-900">{l.product_title}</p>
+                <span className="text-[10px] rounded-full px-2 py-0.5 bg-purple-100 text-purple-700">
+                  {l.product_type === 'course' ? '課程' : l.product_type === 'quiz' ? '測驗' : '電子書'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Link to enterprise passport */}
       {companyId && (
