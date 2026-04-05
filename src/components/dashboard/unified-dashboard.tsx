@@ -13,7 +13,6 @@ const ROLE_TABS: { role: string; icon: string; label: string; color: string; act
   { role: 'consultant', icon: '👑', label: '管理', color: 'border-indigo-300 bg-indigo-50 text-indigo-700', activeColor: 'bg-indigo-600 text-white border-indigo-600' },
   { role: 'admin', icon: '🗂️', label: '行政', color: 'border-blue-300 bg-blue-50 text-blue-700', activeColor: 'bg-blue-600 text-white border-blue-600' },
   { role: 'instructor', icon: '📖', label: '講師', color: 'border-green-300 bg-green-50 text-green-700', activeColor: 'bg-green-600 text-white border-green-600' },
-  { role: 'supervisor', icon: '🎓', label: '督導', color: 'border-purple-300 bg-purple-50 text-purple-700', activeColor: 'bg-purple-600 text-white border-purple-600' },
   { role: 'analyst', icon: '🧬', label: '生命教練', color: 'border-pink-300 bg-pink-50 text-pink-700', activeColor: 'bg-pink-600 text-white border-pink-600' },
   { role: 'hr', icon: '🏢', label: 'HR', color: 'border-cyan-300 bg-cyan-50 text-cyan-700', activeColor: 'bg-cyan-600 text-white border-cyan-600' },
   { role: 'manager', icon: '👔', label: '主管', color: 'border-amber-300 bg-amber-50 text-amber-700', activeColor: 'bg-amber-600 text-white border-amber-600' },
