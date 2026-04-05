@@ -41,8 +41,8 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && isAuthPage) {
-    // Don't redirect reset-password page (user needs to set new password)
-    if (pathname === '/auth/reset-password') {
+    // Don't redirect these auth pages (user needs to complete action)
+    if (pathname === '/auth/reset-password' || pathname === '/auth/confirm') {
       return supabaseResponse
     }
     const url = request.nextUrl.clone()

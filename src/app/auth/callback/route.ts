@@ -5,14 +5,13 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/dashboard'
+  const type = searchParams.get('type')
 
   if (code) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // If this is a password reset flow, redirect to reset-password page
-      const type = searchParams.get('type')
       if (type === 'recovery') {
         return NextResponse.redirect(new URL('/auth/reset-password', request.url))
       }
@@ -20,5 +19,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(new URL('/auth/login?error=auth_failed', request.url))
+  // If no code, redirect to client-side confirm page to handle hash fragments
+  return NextResponse.redirect(new URL('/auth/confirm' + '?' + searchParams.toString(), request.url))
 }
