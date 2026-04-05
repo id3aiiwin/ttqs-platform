@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 
 const TYPE_LABELS: Record<string, { label: string; icon: string }> = {
-  course: { label: '線��課程', icon: '🎓' },
+  course: { label: '線上課程', icon: '🎓' },
   quiz: { label: '測驗', icon: '🧪' },
   ebook: { label: '電子書', icon: '📚' },
 }

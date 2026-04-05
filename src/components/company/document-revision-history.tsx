@@ -53,7 +53,7 @@ export function DocumentRevisionHistory({ documentId, companyId, versions, revie
     })
   }
 
-  // 合併版本和審核紀��，按時間排序
+  // 合併版本和審核紀錄，按時間排序
   const timeline = [
     ...versions.map((v) => ({ type: 'version' as const, time: v.changed_at, data: v })),
     ...reviews.map((r) => ({ type: 'review' as const, time: r.reviewed_at, data: r })),
@@ -69,7 +69,7 @@ export function DocumentRevisionHistory({ documentId, companyId, versions, revie
         )}
       </div>
 
-      {/* 新增���本表單 */}
+      {/* 新增版本表單 */}
       {addingVersion && (
         <div className="bg-indigo-50/50 border border-indigo-100 rounded-lg p-3 space-y-2">
           <div className="flex gap-2">

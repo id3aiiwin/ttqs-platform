@@ -51,7 +51,7 @@ export function StudentDashboard({ profile, enrollments }: Props) {
           <span className="text-2xl">🛒</span>
           <div>
             <p className="text-sm font-medium text-gray-900">課程商店</p>
-            <p className="text-xs text-gray-400">瀏覽並購買���程</p>
+            <p className="text-xs text-gray-400">瀏覽並購買課程</p>
           </div>
         </Link>
         <Link href="/my-orders" className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:border-indigo-300 transition-colors">

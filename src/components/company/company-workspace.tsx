@@ -47,7 +47,7 @@ export function CompanyWorkspace({ company, stats }: WorkspaceProps) {
     { href: `/courses`, label: '課程管理', icon: '📚', count: stats.courseCount },
     { href: `/companies/${id}/documents`, label: '四階文件', icon: '📁', count: stats.totalDocs },
     { href: `/companies/${id}/organization`, label: '組織架構', icon: '🏢' },
-    { href: `/companies/${id}/employees`, label: '��工管��', icon: '👤' },
+    { href: `/companies/${id}/employees`, label: '員工管理', icon: '👤' },
     { href: `/companies/${id}/competency`, label: '職能管理', icon: '👥' },
     { href: `/companies/${id}/templates`, label: '表單模板', icon: '📋' },
     { href: `/companies/${id}/contracts`, label: '合約管理', icon: '📄' },

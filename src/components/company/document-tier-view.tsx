@@ -27,7 +27,7 @@ export function DocumentTierView({ documents, companyId, tier, isConsultant, ver
     <div>
       {documents.length === 0 ? (
         <div className="text-center py-12 text-sm text-gray-400">
-          ���層級尚無文件
+          此層級尚無文件
         </div>
       ) : (
         <div className="divide-y divide-gray-100">

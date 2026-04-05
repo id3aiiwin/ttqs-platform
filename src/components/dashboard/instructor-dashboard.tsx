@@ -8,7 +8,7 @@ import type { Profile } from '@/types/database'
 
 const LEVEL_LABELS: Record<string, { label: string; color: string }> = {
   '儲備講師': { label: '儲備講師', color: 'bg-gray-100 text-gray-700' },
-  '正式講師': { label: '正式���師', color: 'bg-blue-100 text-blue-700' },
+  '正式講師': { label: '正式講師', color: 'bg-blue-100 text-blue-700' },
   '資深講師': { label: '資深講師', color: 'bg-purple-100 text-purple-700' },
   '督導講師': { label: '督導講師', color: 'bg-amber-100 text-amber-700' },
 }
@@ -41,14 +41,14 @@ const LEVEL_REQUIREMENTS: Record<string, { nextLevel: string; requirements: { la
     { label: '回訓次數', key: 'refresh', target: 2 },
     { label: '實習報告', key: 'reports', target: 10 },
   ]},
-  '正��講師': { nextLevel: '資深講師', requirements: [
+  '正式講師': { nextLevel: '資深講師', requirements: [
     { label: '累計授課時數', key: 'hours', target: 150 },
     { label: '回訓次數', key: 'refresh', target: 2 },
     { label: '平均滿意度', key: 'satisfaction', target: 90 },
     { label: '發表文章', key: 'articles', target: 10 },
     { label: '課程審查', key: 'reviews', target: 1 },
   ]},
-  '資��講師': { nextLevel: '督導講師', requirements: [
+  '資深講師': { nextLevel: '督導講師', requirements: [
     { label: '累計授課時數', key: 'hours', target: 150 },
     { label: '回訓次數', key: 'refresh', target: 2 },
     { label: '平均滿意度', key: 'satisfaction', target: 90 },

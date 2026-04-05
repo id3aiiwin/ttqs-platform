@@ -78,7 +78,7 @@ export default async function ProfilePage() {
         <CardHeader>
           <div>
             <p className="font-semibold text-gray-900">LINE 綁定</p>
-            <p className="text-xs text-gray-400 mt-0.5">綁定 LINE 帳號以��收上課通知</p>
+            <p className="text-xs text-gray-400 mt-0.5">綁定 LINE 帳號以接收上課通知</p>
           </div>
         </CardHeader>
         <CardBody>
