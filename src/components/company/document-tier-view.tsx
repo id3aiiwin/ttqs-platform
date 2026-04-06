@@ -3,6 +3,7 @@
 import { DocumentItem } from './document-item'
 import { AddDocumentForm } from './add-document-form'
 import type { CompanyDocument } from '@/types/database'
+import type { FormSchema } from '@/types/form-schema'
 
 interface VersionData { id: string; version: string; change_note: string | null; changed_by: string | null; changed_at: string; file_url: string | null; changer_name?: string }
 interface ReviewData { id: string; status: 'needs_revision' | 'approved'; comment: string | null; reviewed_at: string; reviewer_id: string; reviewer_name?: string }
@@ -20,9 +21,12 @@ interface DocumentTierViewProps {
   approvalMap?: Record<string, ApprovalData>
   sigsByApproval?: Record<string, ApprovalSigData[]>
   approvalFlows?: FlowOption[]
+  templateSchemaMap?: Record<string, FormSchema>
+  filledContentMap?: Record<string, Record<string, unknown>>
+  companyName?: string
 }
 
-export function DocumentTierView({ documents, companyId, tier, isConsultant, versionsByDoc, reviewsByDoc, approvalMap, sigsByApproval, approvalFlows }: DocumentTierViewProps) {
+export function DocumentTierView({ documents, companyId, tier, isConsultant, versionsByDoc, reviewsByDoc, approvalMap, sigsByApproval, approvalFlows, templateSchemaMap, filledContentMap, companyName }: DocumentTierViewProps) {
   return (
     <div>
       {documents.length === 0 ? (
@@ -42,6 +46,9 @@ export function DocumentTierView({ documents, companyId, tier, isConsultant, ver
               approval={doc.approval_id ? approvalMap?.[doc.approval_id] : undefined}
               approvalSigs={doc.approval_id ? sigsByApproval?.[doc.approval_id] : undefined}
               approvalFlows={approvalFlows}
+              templateSchema={doc.template_id ? templateSchemaMap?.[doc.template_id] : undefined}
+              filledContent={filledContentMap?.[doc.id]}
+              companyName={companyName}
             />
           ))}
         </div>

@@ -6,6 +6,7 @@ import { Card, CardHeader } from '@/components/ui/card'
 import { DocumentTierView } from '@/components/company/document-tier-view'
 import { InitDocumentsButton } from '@/components/company/init-documents-button'
 import { getUser } from '@/lib/get-user'
+import type { FormSchema } from '@/types/form-schema'
 
 export const metadata = { title: '四階管理文件 | ID3A 管理平台' }
 
@@ -128,6 +129,18 @@ export default async function DocumentsPage({
   // 取得企業的簽核流程
   const { data: approvalFlows } = await serviceClient.from('approval_flows').select('id, name, is_default').eq('company_id', id)
 
+  // 取得所有連結的知識庫模板結構化內容
+  const templateIds = documents?.map(d => d.template_id).filter(Boolean) as string[] ?? []
+  const { data: kbTemplates } = templateIds.length > 0
+    ? await serviceClient.from('knowledge_base_templates').select('id, structured_content').in('id', [...new Set(templateIds)])
+    : { data: [] }
+  const templateSchemaMap: Record<string, FormSchema> = {}
+  kbTemplates?.forEach(t => { if (t.structured_content) templateSchemaMap[t.id] = t.structured_content as unknown as FormSchema })
+
+  // 取得 filled_content
+  const filledContentMap: Record<string, Record<string, unknown>> = {}
+  documents?.forEach(d => { if (d.filled_content) filledContentMap[d.id] = d.filled_content as Record<string, unknown> })
+
   const hasDocuments = documents && documents.length > 0
 
   // 按 tier 分組
@@ -227,6 +240,9 @@ export default async function DocumentsPage({
               approvalMap={approvalMap as Record<string, { id: string; status: string; current_step: number }>}
               sigsByApproval={sigsByApproval as Record<string, { id: string; step_order: number; signer_role: string; signer_name: string | null; signature_url: string | null; status: string; comment: string | null; signed_at: string | null }[]>}
               approvalFlows={(approvalFlows ?? []).map(f => ({ id: f.id, name: f.name, is_default: f.is_default }))}
+              templateSchemaMap={templateSchemaMap}
+              filledContentMap={filledContentMap}
+              companyName={company.name}
             />
           </Card>
 

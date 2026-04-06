@@ -439,6 +439,7 @@ export type Database = {
           notes: string | null
           created_by: string | null
           approval_id: string | null
+          filled_content: Record<string, unknown> | null
           created_at: string
           updated_at: string
         }
@@ -460,6 +461,7 @@ export type Database = {
           notes?: string | null
           created_by?: string | null
           approval_id?: string | null
+          filled_content?: Record<string, unknown> | null
         }
         Update: {
           doc_number?: string | null
@@ -471,6 +473,7 @@ export type Database = {
           status?: 'draft' | 'pending_review' | 'approved'
           notes?: string | null
           approval_id?: string | null
+          filled_content?: Record<string, unknown> | null
         }
         Relationships: []
       }
