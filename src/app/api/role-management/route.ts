@@ -18,7 +18,15 @@ export async function PATCH(request: NextRequest) {
   // Build update payload
   const updateData: Record<string, unknown> = {}
   if (roles && roles.length > 0) {
-    updateData.role = primary_role || roles[0]
+    // Preserve the highest-priority role: if user already has consultant role and it's still selected, keep it
+    const sc2 = createServiceClient()
+    const { data: targetProfile } = await sc2.from('profiles').select('role').eq('id', user_id).single()
+    const currentRole = targetProfile?.role
+    if (currentRole && roles.includes(currentRole)) {
+      updateData.role = primary_role && roles.includes(primary_role) ? primary_role : currentRole
+    } else {
+      updateData.role = primary_role || roles[0]
+    }
     updateData.roles = roles
   }
   if (r1_pattern !== undefined) updateData.r1_pattern = r1_pattern

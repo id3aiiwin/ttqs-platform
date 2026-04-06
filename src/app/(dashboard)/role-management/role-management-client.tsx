@@ -47,7 +47,7 @@ export function RoleManagementClient({ users, companyMap, companies }: Props) {
       await fetch('/api/role-management', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: editingUser.id, roles: editRoles, primary_role: editRoles[0] }),
+        body: JSON.stringify({ user_id: editingUser.id, roles: editRoles, primary_role: editRoles.includes(editingUser.role) ? editingUser.role : editRoles[0] }),
       })
       setEditingUser(null)
       router.refresh()
