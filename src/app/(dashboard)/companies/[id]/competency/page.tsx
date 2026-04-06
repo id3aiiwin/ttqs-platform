@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect, notFound } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { Card, CardHeader, CardBody } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,7 @@ import { CreateEntryButton } from '@/components/competency/create-entry-button'
 import { DeleteEntryButton } from '@/components/competency/delete-entry-button'
 import { ResetTemplatesButton } from '@/components/competency/reset-templates-button'
 import { CompetencyMatrix } from '@/components/competency/competency-matrix'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '職能管理 | ID3A 管理平台' }
 
@@ -52,8 +53,7 @@ export default async function CompetencyPage({
   const { id } = await params
   const { tab: activeTab = 'jd' } = await searchParams
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)

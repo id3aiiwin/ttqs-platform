@@ -1,10 +1,11 @@
 import { redirect } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { Card, CardHeader, CardBody } from '@/components/ui/card'
 import { BrainVisualization } from '@/components/talent/brain-visualization'
 import { TalentInputForm } from '@/components/talent/talent-input-form'
 import { TalentSearchClient } from './talent-search-client'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '天賦評量報告 | ID3A 管理平台' }
 
@@ -14,8 +15,7 @@ export default async function MyTalentPage({
   searchParams: Promise<{ view?: string }>
 }) {
   const { view: viewUserId } = await searchParams
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)

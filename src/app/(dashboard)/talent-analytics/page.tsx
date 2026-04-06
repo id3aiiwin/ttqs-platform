@@ -1,15 +1,15 @@
 import { redirect } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { TalentAnalyticsClient } from './talent-analytics-client'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '皮紋評量分析 | ID3A 管理平台' }
 
 const DRIVE_KEYS = ['行動力', '學習力', '社交力', '領導力', '執行力', '創造力', '感受力', '思維力', '分析力', '自律力'] as const
 
 export default async function TalentAnalyticsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)

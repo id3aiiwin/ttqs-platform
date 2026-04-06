@@ -1,16 +1,14 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getUser } from '@/lib/get-user'
 import { getProfile } from '@/lib/get-profile'
 import { SidebarWrapper } from '@/components/layout/sidebar-wrapper'
 import { NotificationBell } from '@/components/layout/notification-bell'
 import { MobileSidebar, MobileMenuButton } from '@/components/layout/mobile-sidebar'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
+  const user = await getUser()
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-  if (authError || !user) {
+  if (!user) {
     redirect('/auth/login')
   }
 

@@ -1,13 +1,13 @@
 import { redirect } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { SurveyImportClient } from './survey-import-client'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '歷史問卷匯入 | ID3A 管理平台' }
 
 export default async function SurveyImportPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)

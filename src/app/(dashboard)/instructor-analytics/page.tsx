@@ -1,13 +1,13 @@
 import { redirect } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { InstructorAnalyticsClient } from './instructor-analytics-client'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '講師績效分析 | ID3A 管理平台' }
 
 export default async function InstructorAnalyticsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)
@@ -15,21 +15,17 @@ export default async function InstructorAnalyticsPage() {
 
   const sc = createServiceClient()
 
-  // 所有課程
-  const { data: courses } = await sc.from('courses').select(
-    'id, title, status, start_date, hours, trainer, company_id, review_status, is_counted_in_hours, total_revenue, course_type, material_submit_date'
-  )
-
-  // 講師 profiles（roles 含 instructor）
-  const { data: instructorProfiles } = await sc.from('profiles').select(
-    'id, full_name, instructor_level, accumulated_hours, average_satisfaction, roles, role'
-  )
-
-  // 問卷資料
-  const { data: surveys } = await sc.from('course_surveys').select('course_id, custom_questions')
-
-  // 企業名稱
-  const { data: companies } = await sc.from('companies').select('id, name')
+  const [
+    { data: courses },
+    { data: instructorProfiles },
+    { data: surveys },
+    { data: companies },
+  ] = await Promise.all([
+    sc.from('courses').select('id, title, status, start_date, hours, trainer, company_id, review_status, is_counted_in_hours, total_revenue, course_type, material_submit_date'),
+    sc.from('profiles').select('id, full_name, instructor_level, accumulated_hours, average_satisfaction, roles, role'),
+    sc.from('course_surveys').select('course_id, custom_questions'),
+    sc.from('companies').select('id, name'),
+  ])
 
   // 篩選講師
   const instructors = (instructorProfiles ?? []).filter(

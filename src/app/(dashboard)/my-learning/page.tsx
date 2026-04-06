@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { Card, CardHeader, CardBody } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { CoursePlayer } from '@/components/product-player/course-player'
 import { QuizPlayer } from '@/components/product-player/quiz-player'
 import { EbookReader } from '@/components/product-player/ebook-reader'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '我的學習 | ID3A 管理平台' }
 
@@ -13,8 +14,7 @@ export default async function MyLearningPage({
   searchParams,
 }: { searchParams: Promise<{ product?: string }> }) {
   const { product: viewProductId } = await searchParams
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)

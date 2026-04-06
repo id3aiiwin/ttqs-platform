@@ -1,14 +1,14 @@
 import { redirect, notFound } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { QuizTakeClient } from './quiz-take-client'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '作答測驗 | ID3A 管理平台' }
 
 export default async function QuizTakePage({ params }: { params: Promise<{ quizId: string }> }) {
   const { quizId } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const sc = createServiceClient()

@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { CourseListPanel } from '@/components/course/course-list-panel'
 import { CourseDetailPanel } from '@/components/course/course-detail-panel'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '課程管理 | ID3A 管理平台' }
 
@@ -13,9 +13,7 @@ export default async function CoursesPage({
   searchParams: Promise<{ selected?: string }>
 }) {
   const { selected } = await searchParams
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)

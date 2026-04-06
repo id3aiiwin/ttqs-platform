@@ -1,17 +1,16 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { Card, CardHeader, CardBody } from '@/components/ui/card'
 import { ProfileSignatureUpload } from './profile-signature-upload'
 import { LineBindingSection } from './line-binding-section'
 import { ChangePassword } from './change-password'
 import { ROLE_LABELS } from '@/lib/utils'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '個人設定 | ID3A 管理平台' }
 
 export default async function ProfilePage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)

@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { getWorkspaceStats } from '@/lib/get-workspace-stats'
 import { Card, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { OverviewFilter } from '@/components/overview/overview-filter'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '企業總表 | ID3A 管理平台' }
 
@@ -24,8 +25,7 @@ export default async function OverviewPage({
 }) {
   const { year: filterYear, company: filterCompany, plan: filterPlan } = await searchParams
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)
@@ -33,26 +33,23 @@ export default async function OverviewPage({
 
   const sc = createServiceClient()
 
-  // 企業列表
-  let companiesQuery = sc.from('companies').select('id, name, status').order('name')
-  const { data: companies } = await companiesQuery
+  // 並行查詢
+  let contractQuery = sc.from('company_contracts').select('*').order('created_at', { ascending: false })
+  if (filterPlan) contractQuery = contractQuery.eq('plan_id', filterPlan)
+
+  const [{ data: companies }, { data: allProposals }, { data: trainingPlans }, { data: allContracts }] = await Promise.all([
+    sc.from('companies').select('id, name, status').order('name'),
+    sc.from('company_proposals').select('*').order('year', { ascending: false }),
+    sc.from('training_plans').select('id, name').eq('is_active', true).order('name'),
+    contractQuery,
+  ])
 
   const filteredCompanies = filterCompany
     ? companies?.filter((c) => c.id === filterCompany) ?? []
     : companies ?? []
 
-  // 所有提案
-  const { data: allProposals } = await sc.from('company_proposals').select('*').order('year', { ascending: false })
-
-  // 計畫
-  const { data: trainingPlans } = await sc.from('training_plans').select('id, name').eq('is_active', true).order('name')
   const planMap: Record<string, string> = {}
   trainingPlans?.forEach((p) => { planMap[p.id] = p.name })
-
-  // 所有合約
-  let contractQuery = sc.from('company_contracts').select('*').order('created_at', { ascending: false })
-  if (filterPlan) contractQuery = contractQuery.eq('plan_id', filterPlan)
-  const { data: allContracts } = await contractQuery
 
   // 彙整每家企業的資料
   const rows: {

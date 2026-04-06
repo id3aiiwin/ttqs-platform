@@ -1,12 +1,13 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { TTQS_LEVELS } from '@/lib/utils'
 import type { Company } from '@/types/database'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '企業管理 | ID3A 管理平台' }
 
@@ -17,15 +18,14 @@ function statusBadge(status: Company['status']) {
 }
 
 export default async function CompaniesPage() {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)
   if (profile?.role !== 'consultant') redirect('/dashboard')
 
-  const { data: companies } = await supabase
+  const sc = createServiceClient()
+  const { data: companies } = await sc
     .from('companies')
     .select('*')
     .order('name')

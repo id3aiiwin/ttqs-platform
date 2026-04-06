@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect, notFound } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { Card, CardHeader, CardBody } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -8,6 +8,7 @@ import {
   LEARNING_EFFECT, COURSE_EVAL, INSTRUCTOR_EVAL, VENUE_EVAL,
   OPEN_QUESTIONS, FUTURE_COURSES, SECTION_LABELS,
 } from '@/lib/survey-questions'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '問卷統計 | ID3A 管理平台' }
 
@@ -42,8 +43,7 @@ function sectionAvg(responses: Record<string, unknown>[], key: string, count: nu
 
 export default async function SurveyResultsPage({ params }: { params: Promise<{ id: string; courseId: string }> }) {
   const { id: companyId, courseId } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)

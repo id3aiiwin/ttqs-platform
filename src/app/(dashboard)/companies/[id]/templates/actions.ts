@@ -1,11 +1,11 @@
 'use server'
 
 import { createServiceClient } from '@/lib/supabase/server'
-import { createClient } from '@/lib/supabase/server'
 import { PDDRO_DEFAULT_FORMS } from '@/lib/pddro-defaults'
 import { PDDRO_FORM_SCHEMAS } from '@/lib/pddro-form-schemas'
 import { revalidatePath } from 'next/cache'
 import type { FormSchema } from '@/types/form-schema'
+import { getUser } from '@/lib/get-user'
 
 type PddroPhase = 'P' | 'D' | 'DO' | 'R' | 'O'
 type FormType = 'online' | 'upload' | 'auto'
@@ -134,8 +134,7 @@ export async function updateTemplateType(templateId: string, formType: FormType,
 
 /** 確認模板項目（記錄確認人與時間） */
 export async function confirmTemplateItem(templateId: string, companyId: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
 
   const serviceClient = createServiceClient()
   const { error } = await serviceClient

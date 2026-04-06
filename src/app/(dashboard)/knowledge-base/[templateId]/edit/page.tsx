@@ -1,9 +1,10 @@
 import Link from 'next/link'
 import { redirect, notFound } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { KbEditorClient } from './kb-editor-client'
 import type { FormSchema } from '@/types/form-schema'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '編輯文件內容 | ID3A 管理平台' }
 
@@ -13,9 +14,7 @@ export default async function KbEditorPage({
   params: Promise<{ templateId: string }>
 }) {
   const { templateId } = await params
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)

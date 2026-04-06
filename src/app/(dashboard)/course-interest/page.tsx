@@ -1,14 +1,14 @@
 import { redirect } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { CourseInterestClient } from './course-interest-client'
 import { FUTURE_COURSES } from '@/lib/survey-questions'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '課程興趣統計 | ID3A 管理平台' }
 
 export default async function CourseInterestPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)
@@ -18,26 +18,17 @@ export default async function CourseInterestPage() {
 
   const sc = createServiceClient()
 
-  // Fetch all survey responses
-  const { data: responses } = await sc
-    .from('course_survey_responses')
-    .select('id, survey_id, future_courses, submitted_at')
-
-  // Fetch all course surveys
-  const { data: surveys } = await sc
-    .from('course_surveys')
-    .select('id, course_id')
-
-  // Fetch all courses
-  const { data: courses } = await sc
-    .from('courses')
-    .select('id, title, company_id, start_date')
-
-  // Fetch all companies
-  const { data: companies } = await sc
-    .from('companies')
-    .select('id, name')
-    .order('name')
+  const [
+    { data: responses },
+    { data: surveys },
+    { data: courses },
+    { data: companies },
+  ] = await Promise.all([
+    sc.from('course_survey_responses').select('id, survey_id, future_courses, submitted_at'),
+    sc.from('course_surveys').select('id, course_id'),
+    sc.from('courses').select('id, title, company_id, start_date'),
+    sc.from('companies').select('id, name').order('name'),
+  ])
 
   // Build lookup maps
   const surveyMap: Record<string, string> = {} // survey_id -> course_id

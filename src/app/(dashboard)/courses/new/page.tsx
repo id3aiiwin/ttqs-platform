@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { CourseForm } from '@/components/course/course-form'
 import { createCourse } from '../actions'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '新增課程 | ID3A 管理平台' }
 
@@ -14,9 +14,7 @@ export default async function NewCoursePage({
   searchParams: Promise<{ company?: string; template?: string }>
 }) {
   const { company: defaultCompanyId, template: templateId } = await searchParams
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const serviceClient = createServiceClient()

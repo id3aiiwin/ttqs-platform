@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect, notFound } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { Card, CardHeader, CardBody } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -8,6 +8,7 @@ import { OrgChart } from '@/components/organization/org-chart'
 import { EmployeeTable } from '@/components/organization/employee-table'
 import { OrgDeptFilter } from '@/components/organization/org-dept-filter'
 import { ImportEmployeesButton } from '@/components/company/import-employees-button'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '組織架構 | ID3A 管理平台' }
 
@@ -19,8 +20,7 @@ export default async function OrganizationPage({
   const { id: companyId } = await params
   const { dept: filterDept } = await searchParams
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)

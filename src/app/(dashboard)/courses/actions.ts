@@ -1,12 +1,12 @@
 'use server'
 
 import { createServiceClient } from '@/lib/supabase/server'
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { PDDRO_DEFAULT_FORMS } from '@/lib/pddro-defaults'
 import { PDDRO_FORM_SCHEMAS } from '@/lib/pddro-form-schemas'
 import { initCompanyTemplates } from '@/app/(dashboard)/companies/[id]/templates/actions'
+import { getUser } from '@/lib/get-user'
 
 const courseSchema = z.object({
   title: z.string().min(1, '課程名稱為必填'),
@@ -28,8 +28,7 @@ const courseSchema = z.object({
 type FormState = { error?: string; fieldErrors?: Record<string, string> } | null
 
 export async function createCourse(_: FormState, formData: FormData): Promise<FormState> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) return { error: '請先登入' }
 
   const raw = Object.fromEntries(
@@ -157,8 +156,7 @@ export async function deleteCourse(id: string) {
 }
 
 export async function duplicateCourse(sourceId: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) return
 
   const serviceClient = createServiceClient()

@@ -1,10 +1,11 @@
 import Link from 'next/link'
 import { redirect, notFound } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { Card, CardHeader, CardBody } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ExportButton } from '@/components/ui/export-button'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '企業儀表板 | ID3A 管理平台' }
 
@@ -20,8 +21,7 @@ function StatCard({ label, value, sub, color }: { label: string; value: number; 
 
 export default async function CompanyDashboardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: companyId } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)
@@ -31,10 +31,12 @@ export default async function CompanyDashboardPage({ params }: { params: Promise
   const { data: company } = await sc.from('companies').select('*').eq('id', companyId).single()
   if (!company) notFound()
 
-  const { data: employees } = await sc.from('profiles').select('id, full_name, email, role, department_id').eq('company_id', companyId)
-  const { data: courses } = await sc.from('courses').select('id, title, status, start_date, hours, trainer').eq('company_id', companyId).order('created_at', { ascending: false })
-  const { data: documents } = await sc.from('company_documents').select('id, title, tier, status').eq('company_id', companyId)
-  const { data: departments } = await sc.from('departments').select('id, name, manager_id').eq('company_id', companyId)
+  const [{ data: employees }, { data: courses }, { data: documents }, { data: departments }] = await Promise.all([
+    sc.from('profiles').select('id, full_name, email, role, department_id').eq('company_id', companyId),
+    sc.from('courses').select('id, title, status, start_date, hours, trainer').eq('company_id', companyId).order('created_at', { ascending: false }),
+    sc.from('company_documents').select('id, title, tier, status').eq('company_id', companyId),
+    sc.from('departments').select('id, name, manager_id').eq('company_id', companyId),
+  ])
 
   const totalEmp = employees?.length ?? 0
   const hrCount = employees?.filter(e => e.role === 'hr').length ?? 0

@@ -1,15 +1,15 @@
 import { redirect } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { Card, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ProductManagementClient } from './product-management-client'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '產品管理 | ID3A 管理平台' }
 
 export default async function ProductManagementPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)
@@ -17,12 +17,12 @@ export default async function ProductManagementPage() {
 
   const sc = createServiceClient()
 
-  const { data: products } = await sc.from('products').select('*').order('created_at', { ascending: false })
-  const { data: orders } = await sc.from('shop_orders').select('*').order('created_at', { ascending: false })
-
-  // 課程營收（公開課報名費 + 企業內訓）
-  const { data: courseRegs } = await sc.from('course_registrations').select('fee, payment_status, course_id')
-  const { data: courses } = await sc.from('courses').select('id, trainer, total_revenue, course_type')
+  const [{ data: products }, { data: orders }, { data: courseRegs }, { data: courses }] = await Promise.all([
+    sc.from('products').select('*').order('created_at', { ascending: false }),
+    sc.from('shop_orders').select('*').order('created_at', { ascending: false }),
+    sc.from('course_registrations').select('fee, payment_status, course_id'),
+    sc.from('courses').select('id, trainer, total_revenue, course_type'),
+  ])
   const courseRevenue = (courses ?? []).reduce((sum, c) => sum + (c.total_revenue ?? 0), 0)
   const regRevenue = (courseRegs ?? []).filter(r => r.payment_status === 'paid' || r.payment_status === 'confirmed').reduce((sum, r) => sum + (r.fee ?? 0), 0)
 

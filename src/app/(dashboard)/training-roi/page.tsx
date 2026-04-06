@@ -1,13 +1,13 @@
 import { redirect } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { TrainingRoiClient } from './training-roi-client'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '訓練 ROI 報告 | ID3A 管理平台' }
 
 export default async function TrainingRoiPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)
@@ -15,26 +15,19 @@ export default async function TrainingRoiPage() {
 
   const sc = createServiceClient()
 
-  // 所有企業
-  const { data: companies } = await sc.from('companies')
-    .select('id, name, status, industry, annual_settings')
-    .order('name')
-
-  // 所有課程
-  const { data: courses } = await sc.from('courses')
-    .select('id, title, company_id, start_date, hours, total_revenue, status, course_type, trainer, budget')
-
-  // 問卷（滿意度）
-  const { data: surveys } = await sc.from('course_surveys')
-    .select('course_id, custom_questions')
-
-  // 報名費用
-  const { data: registrations } = await sc.from('course_registrations')
-    .select('course_id, fee, payment_status')
-
-  // 商品訂單
-  const { data: shopOrders } = await sc.from('shop_orders')
-    .select('amount, status, created_at')
+  const [
+    { data: companies },
+    { data: courses },
+    { data: surveys },
+    { data: registrations },
+    { data: shopOrders },
+  ] = await Promise.all([
+    sc.from('companies').select('id, name, status, industry, annual_settings').order('name'),
+    sc.from('courses').select('id, title, company_id, start_date, hours, total_revenue, status, course_type, trainer, budget'),
+    sc.from('course_surveys').select('course_id, custom_questions'),
+    sc.from('course_registrations').select('course_id, fee, payment_status'),
+    sc.from('shop_orders').select('amount, status, created_at'),
+  ])
 
   const now = new Date()
   const currentYear = now.getFullYear()

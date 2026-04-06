@@ -1,13 +1,13 @@
 import { redirect } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { ClientAnalyticsClient } from './client-analytics-client'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '客戶經營分析 | ID3A 管理平台' }
 
 export default async function ClientAnalyticsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)
@@ -15,17 +15,17 @@ export default async function ClientAnalyticsPage() {
 
   const sc = createServiceClient()
 
-  // 所有企業
-  const { data: companies } = await sc.from('companies').select('id, name, status, industry, contact_person, annual_settings, created_at').order('name')
-
-  // 所有課程（營收+滿意度）
-  const { data: courses } = await sc.from('courses').select('id, company_id, title, start_date, total_revenue, status, course_type, created_at')
-
-  // 所有互動紀錄
-  const { data: interactions } = await sc.from('interactions').select('target_id, contact_date')
-
-  // 所有問卷（滿意度趨勢）
-  const { data: surveys } = await sc.from('course_surveys').select('course_id, custom_questions')
+  const [
+    { data: companies },
+    { data: courses },
+    { data: interactions },
+    { data: surveys },
+  ] = await Promise.all([
+    sc.from('companies').select('id, name, status, industry, contact_person, annual_settings, created_at').order('name'),
+    sc.from('courses').select('id, company_id, title, start_date, total_revenue, status, course_type, created_at'),
+    sc.from('interactions').select('target_id, contact_date'),
+    sc.from('course_surveys').select('course_id, custom_questions'),
+  ])
 
   // 整理每家企業的數據
   const companyAnalytics = (companies ?? []).map(company => {

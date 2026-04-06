@@ -1,19 +1,19 @@
 import Link from 'next/link'
 import { redirect, notFound } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { Card, CardHeader, CardBody } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ActionItemsList } from '@/components/meeting/action-items-list'
 import { MeetingApprovalSection } from './meeting-approval-section'
+import { getUser } from '@/lib/get-user'
 
 const TYPE_LABELS: Record<string, string> = { onsite: '現場', online: '視訊', phone: '電話' }
 
 export default async function MeetingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)

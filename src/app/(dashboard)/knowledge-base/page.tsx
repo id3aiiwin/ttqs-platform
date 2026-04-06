@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { Card, CardHeader, CardBody } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { KbFilter } from '@/components/knowledge-base/kb-filter'
 import { KbTemplateCard } from '@/components/knowledge-base/kb-template-card'
 import { KbAddButton } from '@/components/knowledge-base/kb-add-button'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '顧問知識庫 | ID3A 管理平台' }
 
@@ -16,8 +17,7 @@ export default async function KnowledgeBasePage({
 }: { searchParams: Promise<{ phase?: string; tier?: string; search?: string }> }) {
   const { phase, tier, search } = await searchParams
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)

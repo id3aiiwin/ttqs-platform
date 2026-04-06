@@ -1,10 +1,11 @@
 import Link from 'next/link'
 import { redirect, notFound } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { PDDRO_FORM_SCHEMAS } from '@/lib/pddro-form-schemas'
 import { FieldEditorClient } from './field-editor-client'
 import type { FormSchema } from '@/types/form-schema'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '編輯表單欄位 | ID3A 管理平台' }
 
@@ -14,9 +15,7 @@ export default async function FieldEditorPage({
   params: Promise<{ id: string; templateId: string }>
 }) {
   const { id: companyId, templateId } = await params
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)

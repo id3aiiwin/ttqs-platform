@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
-import { createClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { CompanyForm } from '@/components/company/company-form'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
@@ -13,14 +12,13 @@ import { SignatureManager } from '@/components/company/signature-manager'
 import { ApprovalFlowEditor } from '@/components/approval/approval-flow-editor'
 import { AnnualSettingsForm } from '@/components/company/annual-settings-form'
 import { OrgChartUpload } from '@/components/company/org-chart-upload'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '企業設定 | ID3A 管理平台' }
 
 export default async function CompanySettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)

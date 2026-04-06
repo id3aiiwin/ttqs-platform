@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { createServerClient } from '@supabase/ssr'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
@@ -31,10 +32,9 @@ export async function createClient() {
 
 /**
  * Service role client：完全繞過 RLS。
- * 使用原生 createClient（非 SSR 版），避免 @supabase/ssr
- * 從 cookie 讀到 user session 後覆蓋掉 service role key。
+ * 使用 React cache() 確保同一個 request 內只建立一次。
  */
-export function createServiceClient() {
+export const createServiceClient = cache(function createServiceClient() {
   return createSupabaseClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -45,4 +45,4 @@ export function createServiceClient() {
       },
     }
   )
-}
+})

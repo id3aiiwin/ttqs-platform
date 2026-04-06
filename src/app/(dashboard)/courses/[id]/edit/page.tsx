@@ -1,23 +1,23 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { CourseForm } from '@/components/course/course-form'
 import { updateCourse, deleteCourse } from '../../actions'
 import { DeleteCourseButton } from '@/components/course/delete-course-button'
+import { createServiceClient } from '@/lib/supabase/server'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '編輯課程 | ID3A 管理平台' }
 
 export default async function EditCoursePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
+  const sc = createServiceClient()
   const [{ data: course }, { data: companies }] = await Promise.all([
-    supabase.from('courses').select('*').eq('id', id).single(),
-    supabase.from('companies').select('id, name').order('name'),
+    sc.from('courses').select('*').eq('id', id).single(),
+    sc.from('companies').select('id, name').order('name'),
   ])
 
   if (!course) notFound()

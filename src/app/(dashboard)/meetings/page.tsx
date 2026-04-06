@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { MeetingFilter } from '@/components/meeting/meeting-filter'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '會議記錄 | ID3A 管理平台' }
 
@@ -18,8 +19,7 @@ export default async function MeetingsPage({
 }) {
   const { company: filterCompanyId } = await searchParams
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)
@@ -27,24 +27,20 @@ export default async function MeetingsPage({
 
   const sc = createServiceClient()
 
-  // 所有企業（用於篩選下拉）
-  const { data: companies } = await sc.from('companies').select('id, name').order('name')
+  // 並行查詢
+  let meetingsQuery = sc.from('meetings').select('*').order('meeting_date', { ascending: false })
+  if (filterCompanyId) meetingsQuery = meetingsQuery.eq('company_id', filterCompanyId)
 
-  // 所有顧問
-  const { data: consultants } = await sc.from('profiles').select('id, full_name, email').eq('role', 'consultant' as never)
+  const [{ data: companies }, { data: consultants }, { data: meetings }] = await Promise.all([
+    sc.from('companies').select('id, name').order('name'),
+    sc.from('profiles').select('id, full_name, email').eq('role', 'consultant' as never),
+    meetingsQuery,
+  ])
+
   const consultantMap: Record<string, string> = {}
   consultants?.forEach((c) => { consultantMap[c.id] = c.full_name || c.email })
-
-  // 企業名稱 map
   const companyMap: Record<string, string> = {}
   companies?.forEach((c) => { companyMap[c.id] = c.name })
-
-  // 查詢會議（篩選或全部）
-  let query = sc.from('meetings').select('*').order('meeting_date', { ascending: false })
-  if (filterCompanyId) {
-    query = query.eq('company_id', filterCompanyId)
-  }
-  const { data: meetings } = await query
 
   // Action items 統計
   const meetingIds = meetings?.map((m) => m.id) ?? []

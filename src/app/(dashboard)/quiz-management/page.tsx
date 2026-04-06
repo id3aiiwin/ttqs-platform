@@ -1,13 +1,13 @@
 import { redirect } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/get-profile'
 import { QuizManagementClient } from './quiz-management-client'
+import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '測驗管理 | ID3A 管理平台' }
 
 export default async function QuizManagementPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)
