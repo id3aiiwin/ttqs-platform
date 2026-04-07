@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -13,51 +14,55 @@ const I = (d: string) => (
 )
 
 interface NavItem { href: string; label: string; icon: React.ReactNode; roles: string[] }
-interface NavGroup { title: string; items: NavItem[] }
+interface NavGroup { title: string; items: NavItem[]; collapsible?: boolean }
 
 const navGroups: NavGroup[] = [
-  { title: '主要', items: [
+  { title: '主要', collapsible: false, items: [
     { href: '/dashboard', label: '儀表板', roles: ['consultant','admin','hr','manager','employee','instructor','supervisor','analyst','student'],
       icon: I('M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6') },
     { href: '/notifications', label: '通知中心', roles: ['consultant','admin','hr','manager','employee','instructor','supervisor','analyst','student'],
       icon: I('M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9') },
   ]},
-  { title: '管理', items: [
+  { title: '企業與人員', collapsible: true, items: [
     { href: '/overview', label: '企業總表', roles: ['consultant','admin'], icon: I('M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z') },
     { href: '/companies', label: '企業管理', roles: ['consultant','admin','hr','manager','employee'], icon: I('M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4') },
     { href: '/people', label: '學員資料', roles: ['consultant','admin'], icon: I('M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z') },
     { href: '/instructors', label: '講師資料', roles: ['consultant','admin'], icon: I('M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253') },
     { href: '/life-coaches', label: '生命教練', roles: ['consultant','admin'], icon: I('M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z') },
-    { href: '/assessment-reports', label: '評量報告', roles: ['consultant','admin'], icon: I('M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z') },
-    { href: '/course-review', label: '課程審核', roles: ['consultant'], icon: I('M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z') },
+    { href: '/role-management', label: '角色管理', roles: ['consultant'], icon: I('M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z') },
+  ]},
+  { title: '課程與訓練', collapsible: true, items: [
     { href: '/courses', label: '課程管理', roles: ['consultant','admin','hr','manager'], icon: I('M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253') },
+    { href: '/course-review', label: '課程審核', roles: ['consultant'], icon: I('M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z') },
     { href: '/course-templates', label: '課程模板', roles: ['consultant','admin'], icon: I('M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2') },
     { href: '/knowledge-base', label: '知識庫', roles: ['consultant','admin','hr','manager'], icon: I('M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10') },
-    { href: '/meetings', label: '會議記錄', roles: ['consultant','admin'], icon: I('M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z') },
-    { href: '/role-management', label: '角色管理', roles: ['consultant'], icon: I('M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z') },
-    { href: '/data-export', label: '資料匯出', roles: ['consultant','admin'], icon: I('M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4') },
-    { href: '/audit-log', label: '操作紀錄', roles: ['consultant','admin'], icon: I('M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2') },
-  ]},
-  { title: '營運', items: [
-    { href: '/crm', label: '互動紀錄', roles: ['consultant','admin'], icon: I('M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z') },
-    { href: '/todos', label: '待辦事項', roles: ['consultant','admin'], icon: I('M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4') },
-    { href: '/product-management', label: '產品管理', roles: ['consultant','admin'], icon: I('M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4') },
-    { href: '/quiz-management', label: '測驗管理', roles: ['consultant','admin'], icon: I('M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01') },
-    { href: '/quiz-results', label: '測驗紀錄', roles: ['consultant','admin'], icon: I('M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z') },
     { href: '/survey-results', label: '問卷總覽', roles: ['consultant','admin'], icon: I('M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z') },
     { href: '/survey-import', label: '問卷匯入', roles: ['consultant','admin'], icon: I('M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12') },
-    { href: '/course-interest', label: '課程興趣', roles: ['consultant','admin'], icon: I('M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z') },
-    { href: '/client-analytics', label: '客戶分析', roles: ['consultant','admin'], icon: I('M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z') },
-    { href: '/line-templates', label: 'LINE 模板', roles: ['consultant','admin'], icon: I('M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z') },
-    { href: '/instructor-analytics', label: '講師績效', roles: ['consultant','admin'], icon: I('M13 7h8m0 0v8m0-8l-8 8-4-4-6 6') },
-    { href: '/training-roi', label: '訓練 ROI', roles: ['consultant','admin'], icon: I('M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z') },
-    { href: '/talent-analytics', label: '評量分析', roles: ['consultant','admin'], icon: I('M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z') },
+    { href: '/quiz-management', label: '測驗管理', roles: ['consultant','admin'], icon: I('M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01') },
+    { href: '/quiz-results', label: '測驗紀錄', roles: ['consultant','admin'], icon: I('M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z') },
   ]},
-  { title: '專業', items: [
+  { title: '數據與分析', collapsible: true, items: [
+    { href: '/assessment-reports', label: '評量報告', roles: ['consultant','admin'], icon: I('M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z') },
+    { href: '/instructor-analytics', label: '講師績效', roles: ['consultant','admin'], icon: I('M13 7h8m0 0v8m0-8l-8 8-4-4-6 6') },
+    { href: '/client-analytics', label: '客戶分析', roles: ['consultant','admin'], icon: I('M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z') },
+    { href: '/talent-analytics', label: '評量分析', roles: ['consultant','admin'], icon: I('M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z') },
+    { href: '/training-roi', label: '訓練 ROI', roles: ['consultant','admin'], icon: I('M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z') },
+    { href: '/course-interest', label: '課程興趣', roles: ['consultant','admin'], icon: I('M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z') },
+    { href: '/data-export', label: '資料匯出', roles: ['consultant','admin'], icon: I('M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4') },
+  ]},
+  { title: '營運工具', collapsible: true, items: [
+    { href: '/crm', label: '互動紀錄', roles: ['consultant','admin'], icon: I('M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z') },
+    { href: '/meetings', label: '會議記錄', roles: ['consultant','admin'], icon: I('M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z') },
+    { href: '/todos', label: '待辦事項', roles: ['consultant','admin'], icon: I('M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4') },
+    { href: '/product-management', label: '產品管理', roles: ['consultant','admin'], icon: I('M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4') },
+    { href: '/line-templates', label: 'LINE 模板', roles: ['consultant','admin'], icon: I('M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z') },
+    { href: '/audit-log', label: '操作紀錄', roles: ['consultant','admin'], icon: I('M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2') },
+  ]},
+  { title: '專業', collapsible: true, items: [
     { href: '/instructor-promotion', label: '講師等級', roles: ['instructor','supervisor'], icon: I('M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z') },
     { href: '/analyst-cases', label: '生命教練等級', roles: ['analyst'], icon: I('M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01') },
   ]},
-  { title: '學習', items: [
+  { title: '學習', collapsible: true, items: [
     { href: '/my-learning', label: '我的學習', roles: ['student','employee'], icon: I('M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253') },
     { href: '/my-history', label: '學習履歷', roles: ['student','employee'], icon: I('M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z') },
     { href: '/my-quizzes', label: '測驗紀錄', roles: ['student','employee'], icon: I('M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z') },
@@ -79,6 +84,26 @@ export function Sidebar({ role, roles, fullName, email, onLogout }: SidebarProps
   const pathname = usePathname()
   const userRoles = (roles && roles.length > 0) ? roles : [role]
 
+  // 自動展開包含當前頁面的分組
+  const initialOpen = new Set<string>()
+  navGroups.forEach(g => {
+    if (!g.collapsible) return
+    if (g.items.some(item => item.roles.some(r => userRoles.includes(r)) &&
+        (pathname === item.href || pathname.startsWith(item.href + '/')))) {
+      initialOpen.add(g.title)
+    }
+  })
+
+  const [openGroups, setOpenGroups] = useState<Set<string>>(initialOpen)
+
+  function toggleGroup(title: string) {
+    setOpenGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(title)) next.delete(title); else next.add(title)
+      return next
+    })
+  }
+
   return (
     <div className="flex flex-col h-full w-56 bg-white border-r border-gray-100">
       {/* Logo */}
@@ -96,26 +121,55 @@ export function Sidebar({ role, roles, fullName, email, onLogout }: SidebarProps
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-4">
+      <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-1">
         {navGroups.map(group => {
           const visible = group.items.filter(item => item.roles.some(r => userRoles.includes(r)))
           if (visible.length === 0) return null
+
+          const isCollapsible = group.collapsible !== false
+          const isOpen = !isCollapsible || openGroups.has(group.title)
+          const hasActive = visible.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))
+
           return (
             <div key={group.title}>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-1">{group.title}</p>
-              <div className="space-y-0.5">
-                {visible.map(item => {
-                  const active = pathname === item.href || pathname.startsWith(item.href + '/')
-                  return (
-                    <Link key={item.href} href={item.href}
-                      className={cn('flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
-                        active ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900')}>
-                      <span className={cn(active ? 'text-indigo-500' : 'text-gray-400')}>{item.icon}</span>
-                      {item.label}
-                    </Link>
-                  )
-                })}
-              </div>
+              {isCollapsible ? (
+                <button
+                  onClick={() => toggleGroup(group.title)}
+                  className="w-full flex items-center justify-between px-3 py-1.5 group"
+                >
+                  <span className={cn(
+                    'text-[10px] font-semibold uppercase tracking-wider',
+                    hasActive ? 'text-indigo-500' : 'text-gray-400'
+                  )}>
+                    {group.title}
+                    {!isOpen && hasActive && <span className="ml-1 inline-block w-1.5 h-1.5 bg-indigo-500 rounded-full" />}
+                  </span>
+                  <svg className={cn('w-3 h-3 text-gray-400 transition-transform', isOpen && 'rotate-180')}
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              ) : (
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 py-1.5">
+                  {group.title}
+                </p>
+              )}
+
+              {isOpen && (
+                <div className="space-y-0.5 mt-0.5">
+                  {visible.map(item => {
+                    const active = pathname === item.href || pathname.startsWith(item.href + '/')
+                    return (
+                      <Link key={item.href} href={item.href}
+                        className={cn('flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
+                          active ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900')}>
+                        <span className={cn(active ? 'text-indigo-500' : 'text-gray-400')}>{item.icon}</span>
+                        {item.label}
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )
         })}
@@ -128,7 +182,7 @@ export function Sidebar({ role, roles, fullName, email, onLogout }: SidebarProps
             <span className="text-xs font-semibold text-indigo-700">{(fullName || email).charAt(0).toUpperCase()}</span>
           </Link>
           <div className="flex-1 min-w-0">
-            <Link href="/profile" className="text-sm font-medium text-gray-900 truncate hover:text-indigo-600 block">{fullName || email}</Link>
+            <Link href="/profile" className="text-sm font-medium text-gray-900 truncate hover:text-indigo-600 block" title={fullName || email}>{fullName || email}</Link>
             <p className="text-[10px] text-gray-400">{ROLE_LABELS[role]}</p>
           </div>
           <button onClick={onLogout} title="登出" className="text-gray-400 hover:text-gray-600 flex-shrink-0">
