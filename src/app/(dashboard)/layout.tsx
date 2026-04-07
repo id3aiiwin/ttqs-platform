@@ -5,6 +5,7 @@ import { SidebarWrapper } from '@/components/layout/sidebar-wrapper'
 import { NotificationBell } from '@/components/layout/notification-bell'
 import { MobileSidebar, MobileMenuButton } from '@/components/layout/mobile-sidebar'
 import { NavProgress } from '@/components/layout/nav-progress'
+import { Breadcrumb } from '@/components/layout/breadcrumb'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getUser()
@@ -65,9 +66,12 @@ values (
       <div className="flex-1 flex flex-col min-h-0">
         {/* Header bar */}
         <div className="flex-shrink-0 h-12 bg-white border-b border-gray-100 flex items-center justify-between px-4 gap-2">
-          {/* Mobile hamburger */}
-          <MobileMenuButton />
-          <div className="flex items-center gap-2">
+          {/* Mobile hamburger + Breadcrumb */}
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <MobileMenuButton />
+            <Breadcrumb />
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
             <NotificationBell userId={user.id} />
           </div>
         </div>

@@ -84,7 +84,7 @@ export function CourseDetailPanel({ course, forms, photos, notes, tracking, regi
       <div className="max-w-3xl mx-auto p-6">
         {/* Header */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-5">
-          <div className="flex items-start justify-between mb-3">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Badge variant={status.variant}>{status.label}</Badge>
@@ -94,7 +94,7 @@ export function CourseDetailPanel({ course, forms, photos, notes, tracking, regi
                 <p className="text-sm text-gray-500 mt-1">{course.company_name}</p>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {isConsultant && (
                 <button
                   onClick={() => window.open(`/api/export?type=course_students&course_id=${course.id}`, '_blank')}
@@ -154,194 +154,184 @@ export function CourseDetailPanel({ course, forms, photos, notes, tracking, regi
           )}
         </div>
 
-        {/* 摘要卡片 */}
-        <div className="grid grid-cols-4 gap-3 mb-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-3 text-center">
-            <p className="text-xs text-gray-400">學員數</p>
-            <p className="text-lg font-bold text-gray-900">{registrations?.length ?? 0}</p>
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-3 text-center">
-            <p className="text-xs text-gray-400">表單進度</p>
-            <p className="text-lg font-bold text-indigo-600">{progressPct}%</p>
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-3 text-center">
-            <p className="text-xs text-gray-400">審核狀態</p>
-            <Badge variant={course.review_status === 'approved' ? 'success' : course.review_status === 'rejected' ? 'danger' : 'warning'}>
-              {course.review_status === 'approved' ? '已核准' : course.review_status === 'rejected' ? '退回' : '待審'}
-            </Badge>
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-3 text-center">
-            <p className="text-xs text-gray-400">狀態</p>
-            <Badge variant={status.variant}>{status.label}</Badge>
-          </div>
-        </div>
-
-        {/* 參訓學員 */}
-        {(isConsultant || role === 'admin') && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-5">
-            <CourseEnrollmentManager
-              courseId={course.id}
-              companyId={companyId}
-              courseType={course.course_type ?? 'enterprise'}
-              isConsultant={isConsultant}
-            />
-          </div>
-        )}
-
-        {/* 上課照片 */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 mb-5">
-          <CoursePhotos courseId={course.id} companyId={companyId} photos={photos} />
-        </div>
-
-        {/* 公開課報名管理 */}
-        {course.course_type === 'public' && (isConsultant || role === 'admin') && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-5">
-            <h2 className="font-semibold text-gray-900 mb-3">學員報名 / 匯款追蹤</h2>
-            <CourseRegistrations
-              courseId={course.id}
-              registrations={registrations ?? []}
-              defaultFee={course.default_fee}
-              isConsultant={isConsultant || role === 'admin'}
-            />
-          </div>
-        )}
-
-        {/* PDDRO Forms */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">PDDRO 表單清單</h2>
-            {totalForms > 0 && (
-              <p className="text-xs text-gray-400 mt-0.5">
-                {completedForms} / {totalForms} 完成（{progressPct}%）
-              </p>
-            )}
-          </div>
-
-          {/* Progress bar */}
-          {totalForms > 0 && (
-            <div className="px-5 py-2 bg-gray-50 border-b border-gray-100">
-              <div className="w-full bg-gray-200 rounded-full h-1.5">
-                <div
-                  className="bg-indigo-500 h-1.5 rounded-full transition-all"
-                  style={{ width: `${progressPct}%` }}
-                />
+        {/* 摘要卡片 + 分頁標籤 */}
+        <CourseDetailTabs
+          tabs={[
+            { id: 'students', label: '學員', visible: isConsultant || role === 'admin' },
+            { id: 'forms', label: 'PDDRO 表單', visible: true },
+            { id: 'media', label: '照片', visible: true },
+            { id: 'survey', label: '問卷 / 滿意度', visible: true },
+            { id: 'tracking', label: '執行追蹤', visible: isConsultant },
+            { id: 'review', label: '審核 / 行政', visible: isConsultant },
+          ]}
+          summaryCards={
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              <div className="bg-white rounded-lg border border-gray-200 p-3 text-center">
+                <p className="text-xs text-gray-400">學員數</p>
+                <p className="text-lg font-bold text-gray-900">{registrations?.length ?? 0}</p>
+              </div>
+              <div className="bg-white rounded-lg border border-gray-200 p-3 text-center">
+                <p className="text-xs text-gray-400">表單進度</p>
+                <p className="text-lg font-bold text-indigo-600">{progressPct}%</p>
+              </div>
+              <div className="bg-white rounded-lg border border-gray-200 p-3 text-center">
+                <p className="text-xs text-gray-400">審核狀態</p>
+                <Badge variant={course.review_status === 'approved' ? 'success' : course.review_status === 'rejected' ? 'danger' : 'warning'}>
+                  {course.review_status === 'approved' ? '已核准' : course.review_status === 'rejected' ? '退回' : '待審'}
+                </Badge>
+              </div>
+              <div className="bg-white rounded-lg border border-gray-200 p-3 text-center">
+                <p className="text-xs text-gray-400">狀態</p>
+                <Badge variant={status.variant}>{status.label}</Badge>
               </div>
             </div>
-          )}
-
-          {totalForms === 0 ? (
-            <div className="text-center py-12 px-4">
-              <p className="text-sm text-gray-400">尚無表單資料</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {phases.map((p) => {
-                const phaseForms = formsByPhase[p]
-                if (!phaseForms || phaseForms.length === 0) return null
-                return (
-                  <PddroFormSection
-                    key={p}
-                    phase={p}
-                    forms={phaseForms}
+          }
+        >
+          {{
+            students: (
+              <div className="space-y-5">
+                <div className="bg-white rounded-xl border border-gray-200 p-5">
+                  <CourseEnrollmentManager
                     courseId={course.id}
+                    companyId={companyId}
+                    courseType={course.course_type ?? 'enterprise'}
                     isConsultant={isConsultant}
                   />
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* 課中狀況追蹤 */}
-        {role === 'consultant' && (
-          <div className="bg-white rounded-xl border border-blue-200 p-5 mt-5">
-            <h2 className="font-semibold text-gray-900 mb-3">課程訓練狀況</h2>
-            <CourseTracking
-              courseId={course.id}
-              records={(tracking ?? []) as { id: string; tracking_date: string; expected_count: number | null; actual_count: number | null; absent_list: { name: string; reason: string }[]; schedule_status: string; equipment_ok: boolean; equipment_note: string | null; engagement_level: string; engagement_note: string | null; has_incident: boolean; incident_desc: string | null; incident_action: string | null; photo_count: number; summary: string | null; recorded_by_name: string | null }[]}
-              isConsultant={true}
-            />
-          </div>
-        )}
-
-        {/* 課程紀錄（顧問內部） */}
-        {role === 'consultant' && (
-          <div className="bg-white rounded-xl border border-amber-200 p-5 mt-5">
-            <h2 className="font-semibold text-gray-900 mb-3">課程執行紀錄</h2>
-            <CourseNotes courseId={course.id} notes={notes ?? []} isConsultant={true} employees={courseEmployees} />
-          </div>
-        )}
-
-        {/* 問卷管理 */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 mt-5">
-          <h2 className="font-semibold text-gray-900 mb-3">課後問卷</h2>
-          <SurveyManager
-            courseId={course.id}
-            companyId={companyId}
-            survey={survey}
-            responseCount={surveyResponseCount}
-          />
-        </div>
-
-        {/* 課程審核（顧問） */}
-        {isConsultant && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mt-5">
-            <h2 className="font-semibold text-gray-900 mb-3">課程審核</h2>
-            <CourseReviewPanel
-              courseId={course.id}
-              courseTitle={course.title}
-              trainer={course.trainer}
-              hours={course.hours}
-              startDate={course.start_date}
-              materialSubmitDate={course.material_submit_date}
-              teachingLogSubmitDate={course.teaching_log_submit_date}
-              reviewStatus={course.review_status ?? 'pending'}
-              isConsultant={true}
-            />
-          </div>
-        )}
-
-        {/* 教材追蹤 + 行政檢核（顧問/admin） */}
-        {isConsultant && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mt-5">
-            <h2 className="font-semibold text-gray-900 mb-3">教材追蹤 / 行政檢核</h2>
-            <CourseAdminTools
-              courseId={course.id}
-              startDate={course.start_date}
-              materialSubmitDate={course.material_submit_date}
-              teachingLogSubmitDate={course.teaching_log_submit_date}
-              checklist={null}
-            />
-            {/* LINE 通知講師 */}
-            {course.trainer && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <LineInstructorNotify
-                  courseId={course.id}
-                  courseTitle={course.title}
-                  startDate={course.start_date}
-                  trainerName={course.trainer}
-                  surveyId={survey?.id ?? null}
-                />
+                </div>
+                {course.course_type === 'public' && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-5">
+                    <h2 className="font-semibold text-gray-900 mb-3">學員報名 / 匯款追蹤</h2>
+                    <CourseRegistrations
+                      courseId={course.id}
+                      registrations={registrations ?? []}
+                      defaultFee={course.default_fee}
+                      isConsultant={isConsultant || role === 'admin'}
+                    />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        )}
+            ),
 
-        {/* 滿意度回填（顧問/admin） */}
-        {isConsultant && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mt-5">
-            <h2 className="font-semibold text-gray-900 mb-3">滿意度回填</h2>
-            <SatisfactionInput courseId={course.id} courseName={course.title} isEnterprise={course.course_type === 'enterprise'} />
-          </div>
-        )}
+            forms: (
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100">
+                  <h2 className="font-semibold text-gray-900">PDDRO 表單清單</h2>
+                  {totalForms > 0 && (
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {completedForms} / {totalForms} 完成（{progressPct}%）
+                    </p>
+                  )}
+                </div>
+                {totalForms > 0 && (
+                  <div className="px-5 py-2 bg-gray-50 border-b border-gray-100">
+                    <div className="w-full bg-gray-200 rounded-full h-1.5">
+                      <div className="bg-indigo-500 h-1.5 rounded-full transition-all" style={{ width: `${progressPct}%` }} />
+                    </div>
+                  </div>
+                )}
+                {totalForms === 0 ? (
+                  <div className="text-center py-12 px-4">
+                    <p className="text-sm text-gray-400">尚無表單資料</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {phases.map((p) => {
+                      const phaseForms = formsByPhase[p]
+                      if (!phaseForms || phaseForms.length === 0) return null
+                      return (
+                        <PddroFormSection key={p} phase={p} forms={phaseForms} courseId={course.id} isConsultant={isConsultant} />
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            ),
 
-        {/* 滿意度統計分析 */}
-        {survey && surveyResponseCount > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mt-5">
-            <h2 className="font-semibold text-gray-900 mb-3">滿意度統計分析</h2>
-            <AiSurveyAnalysis courseId={course.id} courseTitle={course.title} isConsultant={role === 'consultant'} />
-          </div>
-        )}
+            media: (
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <CoursePhotos courseId={course.id} companyId={companyId} photos={photos} />
+              </div>
+            ),
+
+            survey: (
+              <div className="space-y-5">
+                <div className="bg-white rounded-xl border border-gray-200 p-5">
+                  <h2 className="font-semibold text-gray-900 mb-3">課後問卷</h2>
+                  <SurveyManager courseId={course.id} companyId={companyId} survey={survey} responseCount={surveyResponseCount} />
+                </div>
+                {isConsultant && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-5">
+                    <h2 className="font-semibold text-gray-900 mb-3">滿意度回填</h2>
+                    <SatisfactionInput courseId={course.id} courseName={course.title} isEnterprise={course.course_type === 'enterprise'} />
+                  </div>
+                )}
+                {survey && surveyResponseCount > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-5">
+                    <h2 className="font-semibold text-gray-900 mb-3">滿意度統計分析</h2>
+                    <AiSurveyAnalysis courseId={course.id} courseTitle={course.title} isConsultant={role === 'consultant'} />
+                  </div>
+                )}
+              </div>
+            ),
+
+            tracking: (
+              <div className="space-y-5">
+                <div className="bg-white rounded-xl border border-blue-200 p-5">
+                  <h2 className="font-semibold text-gray-900 mb-3">課程訓練狀況</h2>
+                  <CourseTracking
+                    courseId={course.id}
+                    records={(tracking ?? []) as { id: string; tracking_date: string; expected_count: number | null; actual_count: number | null; absent_list: { name: string; reason: string }[]; schedule_status: string; equipment_ok: boolean; equipment_note: string | null; engagement_level: string; engagement_note: string | null; has_incident: boolean; incident_desc: string | null; incident_action: string | null; photo_count: number; summary: string | null; recorded_by_name: string | null }[]}
+                    isConsultant={true}
+                  />
+                </div>
+                <div className="bg-white rounded-xl border border-amber-200 p-5">
+                  <h2 className="font-semibold text-gray-900 mb-3">課程執行紀錄</h2>
+                  <CourseNotes courseId={course.id} notes={notes ?? []} isConsultant={true} employees={courseEmployees} />
+                </div>
+              </div>
+            ),
+
+            review: (
+              <div className="space-y-5">
+                <div className="bg-white rounded-xl border border-gray-200 p-5">
+                  <h2 className="font-semibold text-gray-900 mb-3">課程審核</h2>
+                  <CourseReviewPanel
+                    courseId={course.id}
+                    courseTitle={course.title}
+                    trainer={course.trainer}
+                    hours={course.hours}
+                    startDate={course.start_date}
+                    materialSubmitDate={course.material_submit_date}
+                    teachingLogSubmitDate={course.teaching_log_submit_date}
+                    reviewStatus={course.review_status ?? 'pending'}
+                    isConsultant={true}
+                  />
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-5">
+                  <h2 className="font-semibold text-gray-900 mb-3">教材追蹤 / 行政檢核</h2>
+                  <CourseAdminTools
+                    courseId={course.id}
+                    startDate={course.start_date}
+                    materialSubmitDate={course.material_submit_date}
+                    teachingLogSubmitDate={course.teaching_log_submit_date}
+                    checklist={null}
+                  />
+                  {course.trainer && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <LineInstructorNotify
+                        courseId={course.id}
+                        courseTitle={course.title}
+                        startDate={course.start_date}
+                        trainerName={course.trainer}
+                        surveyId={survey?.id ?? null}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            ),
+          }}
+        </CourseDetailTabs>
       </div>
     </div>
   )

@@ -145,25 +145,41 @@ export default async function CoursesPage({
 
   return (
     <div className="flex h-full">
-      <CourseListPanel
-        courses={coursesWithCompany}
-        selectedId={selected ?? null}
-        role={profile?.role ?? 'employee'}
-        companies={companyOptions}
-      />
-      <CourseDetailPanel
-        course={selectedCourse}
-        forms={selectedForms}
-        photos={selectedPhotos}
-        notes={selectedNotes}
-        tracking={selectedTracking}
-        registrations={selectedRegistrations}
-        courseEmployees={courseEmployees}
-        survey={selectedSurvey}
-        surveyResponseCount={surveyResponseCount}
-        role={profile?.role ?? 'employee'}
-        companyId={selectedCompanyId}
-      />
+      {/* 列表面板：mobile 選中課程時隱藏 */}
+      <div className={`${selected ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-80 md:flex-shrink-0`}>
+        <CourseListPanel
+          courses={coursesWithCompany}
+          selectedId={selected ?? null}
+          role={profile?.role ?? 'employee'}
+          companies={companyOptions}
+        />
+      </div>
+      {/* 詳情面板：mobile 未選中時隱藏 */}
+      <div className={`${selected ? 'flex' : 'hidden md:flex'} flex-col flex-1 min-w-0`}>
+        {selected && (
+          <div className="md:hidden flex-shrink-0 px-4 py-2 bg-white border-b border-gray-100">
+            <a href="/courses" className="inline-flex items-center gap-1 text-sm text-indigo-600">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              返回列表
+            </a>
+          </div>
+        )}
+        <CourseDetailPanel
+          course={selectedCourse}
+          forms={selectedForms}
+          photos={selectedPhotos}
+          notes={selectedNotes}
+          tracking={selectedTracking}
+          registrations={selectedRegistrations}
+          courseEmployees={courseEmployees}
+          survey={selectedSurvey}
+          surveyResponseCount={surveyResponseCount}
+          role={profile?.role ?? 'employee'}
+          companyId={selectedCompanyId}
+        />
+      </div>
     </div>
   )
 }
