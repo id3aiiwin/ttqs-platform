@@ -429,7 +429,7 @@ function ReviewTab({ courses, companyMap, isAdmin }: { courses: { id: string; ti
           <div key={c.id} className="px-6 py-4 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-900">{c.title}</p>
-              <p className="text-xs text-gray-400">{c.company_id ? companyMap[c.company_id] : '公開課'} · {c.start_date ?? '未排期'} · {c.trainer ?? '無講師'}</p>
+              <p className="text-xs text-gray-400">{c.company_id ? (companyMap[c.company_id] ?? '—') : '公開課'} · {c.start_date ?? '未排期'} · {c.trainer ?? '無講師'}</p>
             </div>
             <Link href={`/courses?selected=${c.id}`} className="text-xs text-indigo-600 hover:text-indigo-700 font-medium border border-indigo-200 rounded-lg px-3 py-1.5">
               審核

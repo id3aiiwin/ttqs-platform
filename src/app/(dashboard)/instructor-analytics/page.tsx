@@ -47,7 +47,7 @@ export default async function InstructorAnalyticsPage() {
 
   // 計算每位講師績效
   const instructorData = instructors.map(inst => {
-    const myCourses = courseList.filter(c => c.trainer === inst.id)
+    const myCourses = courseList.filter(c => c.trainer === inst.full_name || c.trainer === inst.id)
     const countedCourses = myCourses.filter(c => c.is_counted_in_hours)
 
     const totalCourses = myCourses.length

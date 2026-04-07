@@ -142,7 +142,7 @@ export function CourseEnrollmentManager({ courseId, companyId, courseType, isCon
 
       {/* Enrolled list */}
       {enrolled.length > 0 ? (
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="border border-gray-200 rounded-lg overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs text-gray-500">
               <tr>

@@ -406,7 +406,7 @@ function PreviewBlock({ field }: { field: FormFieldDefinition }) {
   }
   if (field.type === 'repeating_group') {
     return (
-      <div className="my-2">
+      <div className="my-2 overflow-x-auto">
         <table className="w-full text-xs border-collapse border border-gray-300">
           <thead><tr className="bg-gray-100">
             {(field.fields ?? []).map(f => <th key={f.id} className="border border-gray-300 px-2 py-1 text-left">{f.label}</th>)}

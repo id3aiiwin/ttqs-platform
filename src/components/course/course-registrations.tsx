@@ -86,7 +86,7 @@ export function CourseRegistrations({ courseId, registrations, defaultFee, isCon
 
       {/* 學員列表 */}
       {registrations.length > 0 && (
-        <div className="border border-gray-200 rounded-lg overflow-hidden mb-4">
+        <div className="border border-gray-200 rounded-lg overflow-x-auto mb-4">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs text-gray-500">
               <tr>
