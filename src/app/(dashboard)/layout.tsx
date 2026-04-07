@@ -4,6 +4,7 @@ import { getProfile } from '@/lib/get-profile'
 import { SidebarWrapper } from '@/components/layout/sidebar-wrapper'
 import { NotificationBell } from '@/components/layout/notification-bell'
 import { MobileSidebar, MobileMenuButton } from '@/components/layout/mobile-sidebar'
+import { NavProgress } from '@/components/layout/nav-progress'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getUser()
@@ -49,6 +50,7 @@ values (
 
   return (
     <div className="flex" style={{ height: '100dvh' }}>
+      <NavProgress />
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <SidebarWrapper
