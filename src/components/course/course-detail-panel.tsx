@@ -17,6 +17,7 @@ import { CourseReviewPanel } from './course-review-panel'
 import { LineInstructorNotify } from './line-instructor-notify'
 import { CourseDetailTabs } from './course-detail-tabs'
 import { DuplicateCourseButton } from './duplicate-course-button'
+import { LineBindQRCode } from './line-bind-qrcode'
 import type { Course, CourseForm, UserRole } from '@/types/database'
 
 const STATUS_LABEL: Record<string, { label: string; variant: 'default' | 'info' | 'warning' | 'success' | 'danger' }> = {
@@ -105,6 +106,12 @@ export function CourseDetailPanel({ course, forms, photos, notes, tracking, regi
                   </svg>
                   匯出學員資料
                 </button>
+              )}
+              {(isConsultant || role === 'admin') && (
+                <LineBindQRCode
+                  courseId={course.id}
+                  label={`讓「${course.title}」的學員掃碼綁定 LINE`}
+                />
               )}
               {isConsultant && (
                 <LineNotifyButton

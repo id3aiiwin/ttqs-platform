@@ -2,22 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
-  const { email, line_user_id } = await request.json()
+  const { email, profile_id, line_user_id } = await request.json()
 
-  if (!email || !line_user_id) {
+  if ((!email && !profile_id) || !line_user_id) {
     return NextResponse.json({ error: '缺少必要參數' }, { status: 400 })
   }
 
   const sc = createServiceClient()
 
-  // 用 email 找到 profile
-  const { data: profile, error } = await sc.from('profiles')
-    .select('id, full_name, email, line_user_id')
-    .eq('email', email.trim().toLowerCase())
-    .single()
+  // 用 profile_id 或 email 找到 profile
+  const query = sc.from('profiles').select('id, full_name, email, line_user_id')
+  if (profile_id) {
+    query.eq('id', profile_id)
+  } else {
+    query.eq('email', email.trim().toLowerCase())
+  }
+  const { data: profile, error } = await query.single()
 
   if (error || !profile) {
-    return NextResponse.json({ error: '找不到此 Email 的帳號，請確認是否為平台註冊的 Email' }, { status: 404 })
+    return NextResponse.json({ error: '找不到對應的帳號' }, { status: 404 })
   }
 
   // 檢查是否已經綁定相同的 LINE
