@@ -33,12 +33,13 @@ interface Props {
 }
 
 export function LiffBindFlow({ courseId, companyId, profileId }: Props) {
-  const [phase, setPhase] = useState<'loading' | 'liff-error' | 'select' | 'binding' | 'success' | 'error'>('loading')
+  const [phase, setPhase] = useState<'loading' | 'liff-error' | 'select' | 'fallback' | 'binding' | 'success' | 'error'>('loading')
   const [students, setStudents] = useState<Student[]>([])
   const [lineProfile, setLineProfile] = useState<LiffProfile | null>(null)
   const [message, setMessage] = useState('')
   const [boundName, setBoundName] = useState('')
   const [search, setSearch] = useState('')
+  const [email, setEmail] = useState('')
 
   const liffId = process.env.NEXT_PUBLIC_LIFF_ID
   const isAutoMode = !!profileId
@@ -125,6 +126,30 @@ export function LiffBindFlow({ courseId, companyId, profileId }: Props) {
   function handleSelect(student: Student) {
     if (!lineProfile) return
     doBind(student.id, lineProfile.userId)
+  }
+
+  async function handleEmailBind(e: React.FormEvent) {
+    e.preventDefault()
+    if (!lineProfile || !email.trim()) return
+    setPhase('binding')
+    try {
+      const res = await fetch('/api/line-bind', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), line_user_id: lineProfile.userId }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setBoundName(data.name || '')
+        setPhase('success')
+      } else {
+        setMessage(data.error || '綁定失敗')
+        setPhase('error')
+      }
+    } catch {
+      setMessage('網路錯誤，請稍後重試')
+      setPhase('error')
+    }
   }
 
   const filtered = search
@@ -214,7 +239,46 @@ export function LiffBindFlow({ courseId, companyId, profileId }: Props) {
                 </div>
               )}
             </div>
+            {/* Fallback link */}
+            <div className="px-4 py-3 border-t border-gray-100">
+              <button
+                onClick={() => setPhase('fallback')}
+                className="text-xs text-gray-400 hover:text-green-600 transition-colors"
+              >
+                找不到我的名字？用 Email 綁定
+              </button>
+            </div>
           </div>
+        )}
+
+        {/* Fallback: email bind */}
+        {phase === 'fallback' && (
+          <form onSubmit={handleEmailBind} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+            <p className="text-sm font-medium text-gray-700 mb-3">用 Email 綁定</p>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="請輸入平台註冊的 Email"
+              required
+              autoFocus
+              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+            <button
+              type="submit"
+              disabled={!email.trim()}
+              className="w-full py-3 bg-green-500 text-white text-sm font-medium rounded-xl hover:bg-green-600 disabled:opacity-50 transition-colors"
+            >
+              確認綁定
+            </button>
+            <button
+              type="button"
+              onClick={() => setPhase('select')}
+              className="w-full mt-2 text-xs text-gray-400 hover:text-gray-600 py-2"
+            >
+              返回名單
+            </button>
+          </form>
         )}
 
         {/* Success */}
