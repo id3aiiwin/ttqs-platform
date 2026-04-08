@@ -829,6 +829,12 @@ export type Database = {
         Update: { file_url?: string }
         Relationships: []
       }
+      course_materials: {
+        Row: { id: string; course_id: string; material_type: string; file_name: string; file_url: string; file_size: number | null; uploaded_by: string | null; uploaded_at: string }
+        Insert: { id?: string; course_id: string; material_type: string; file_name: string; file_url: string; file_size?: number | null; uploaded_by?: string | null }
+        Update: { file_name?: string; file_url?: string }
+        Relationships: []
+      }
       knowledge_base_templates: {
         Row: { id: string; name: string; standard_name: string | null; doc_number_format: string | null; pddro_phase: string; document_type: string; tier: number | null; version: string | null; description: string | null; content: string | null; structured_content: Record<string, unknown> | null; file_url: string | null; auto_replace_rules: { placeholder: string; field: string }[]; review_reminders: { section: string; description: string }[]; ttqs_indicator: string | null; access_level: string; allowed_companies: string[]; is_system: boolean; created_by: string | null; created_at: string; updated_at: string }
         Insert: { id?: string; name: string; standard_name?: string | null; doc_number_format?: string | null; pddro_phase?: string; document_type?: string; tier?: number | null; version?: string | null; description?: string | null; content?: string | null; structured_content?: Record<string, unknown> | null; file_url?: string | null; auto_replace_rules?: unknown[]; review_reminders?: unknown[]; ttqs_indicator?: string | null; access_level?: string; allowed_companies?: string[]; is_system?: boolean; created_by?: string | null }

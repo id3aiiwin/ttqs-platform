@@ -123,6 +123,17 @@ export default async function CoursesPage({
     }
   }
 
+  // 教材資料
+  let selectedMaterials: { id: string; material_type: string; file_name: string; file_url: string; uploaded_at: string }[] = []
+  if (selected) {
+    const { data: mats } = await serviceClient
+      .from('course_materials')
+      .select('id, material_type, file_name, file_url, uploaded_at')
+      .eq('course_id', selected)
+      .order('uploaded_at', { ascending: false })
+    selectedMaterials = mats ?? []
+  }
+
   // 問卷資料
   let selectedSurvey: { id: string; is_active: boolean } | null = null
   let surveyResponseCount = 0
@@ -176,6 +187,7 @@ export default async function CoursesPage({
           courseEmployees={courseEmployees}
           survey={selectedSurvey}
           surveyResponseCount={surveyResponseCount}
+          materials={selectedMaterials}
           role={profile?.role ?? 'employee'}
           companyId={selectedCompanyId}
         />

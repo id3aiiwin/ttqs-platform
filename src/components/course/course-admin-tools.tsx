@@ -3,17 +3,32 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
+interface MaterialFile {
+  id: string
+  material_type: string
+  file_name: string
+  file_url: string
+  uploaded_at: string
+}
+
 interface Props {
   courseId: string
   startDate: string | null
   materialSubmitDate: string | null
   teachingLogSubmitDate: string | null
   checklist: { items: string[]; checked: Record<string, boolean> } | null
+  materials?: MaterialFile[]
 }
 
 const DEFAULT_CHECKLIST = ['講義', '簽到表', '教案', '課後問卷']
 
-export function CourseAdminTools({ courseId, startDate, materialSubmitDate, teachingLogSubmitDate, checklist }: Props) {
+const TYPE_LABELS: Record<string, string> = {
+  lesson_plan: '教案',
+  presentation: '簡報',
+  teaching_log: '教學日誌',
+}
+
+export function CourseAdminTools({ courseId, startDate, materialSubmitDate, teachingLogSubmitDate, checklist, materials }: Props) {
   const [materialDate, setMaterialDate] = useState(materialSubmitDate ?? '')
   const [logDate, setLogDate] = useState(teachingLogSubmitDate ?? '')
   const [items] = useState(checklist?.items ?? DEFAULT_CHECKLIST)
@@ -111,6 +126,25 @@ export function CourseAdminTools({ courseId, startDate, materialSubmitDate, teac
           ))}
         </div>
       </div>
+
+      {/* 講師上傳的教材 */}
+      {materials && materials.length > 0 && (
+        <div>
+          <p className="text-xs font-medium text-gray-500 mb-2">講師上傳教材</p>
+          <div className="space-y-1.5">
+            {materials.map(m => (
+              <div key={m.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                <span className="text-xs font-medium text-gray-500 w-14 flex-shrink-0">{TYPE_LABELS[m.material_type] ?? m.material_type}</span>
+                <a href={m.file_url} target="_blank" rel="noopener"
+                  className="text-xs text-indigo-600 hover:underline truncate flex-1">
+                  {m.file_name}
+                </a>
+                <span className="text-[10px] text-gray-400 flex-shrink-0">{m.uploaded_at?.slice(0, 10)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <button onClick={handleSave} disabled={pending}
         className="text-xs text-white bg-indigo-600 hover:bg-indigo-700 rounded px-4 py-1.5 disabled:opacity-50">

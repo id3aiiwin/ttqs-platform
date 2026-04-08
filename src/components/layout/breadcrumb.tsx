@@ -34,6 +34,7 @@ const ROUTE_LABELS: Record<string, string> = {
   'audit-log': '操作紀錄',
   'instructor-promotion': '講師等級',
   'analyst-cases': '生命教練等級',
+  'my-courses': '我的授課',
   'my-learning': '我的學習',
   'my-history': '學習履歷',
   'my-quizzes': '測驗紀錄',

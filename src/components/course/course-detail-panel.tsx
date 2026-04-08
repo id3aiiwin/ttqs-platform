@@ -44,11 +44,12 @@ interface CourseDetailPanelProps {
   courseEmployees?: { id: string; name: string }[]
   survey: SurveyData | null
   surveyResponseCount: number
+  materials?: { id: string; material_type: string; file_name: string; file_url: string; uploaded_at: string }[]
   role: UserRole
   companyId: string
 }
 
-export function CourseDetailPanel({ course, forms, photos, notes, tracking, registrations, courseEmployees, survey, surveyResponseCount, role, companyId }: CourseDetailPanelProps) {
+export function CourseDetailPanel({ course, forms, photos, notes, tracking, registrations, courseEmployees, survey, surveyResponseCount, materials, role, companyId }: CourseDetailPanelProps) {
   if (!course) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gray-50">
@@ -322,6 +323,7 @@ export function CourseDetailPanel({ course, forms, photos, notes, tracking, regi
                     materialSubmitDate={course.material_submit_date}
                     teachingLogSubmitDate={course.teaching_log_submit_date}
                     checklist={null}
+                    materials={materials}
                   />
                   {course.trainer && (
                     <div className="mt-4 pt-4 border-t border-gray-200">
