@@ -26,7 +26,13 @@ declare global {
   }
 }
 
-export function LiffBindFlow({ courseId, companyId }: { courseId?: string; companyId?: string }) {
+interface Props {
+  courseId?: string
+  companyId?: string
+  profileId?: string // 個人專屬 QR Code 用：掃碼即綁定
+}
+
+export function LiffBindFlow({ courseId, companyId, profileId }: Props) {
   const [phase, setPhase] = useState<'loading' | 'liff-error' | 'select' | 'binding' | 'success' | 'error'>('loading')
   const [students, setStudents] = useState<Student[]>([])
   const [lineProfile, setLineProfile] = useState<LiffProfile | null>(null)
@@ -35,6 +41,29 @@ export function LiffBindFlow({ courseId, companyId }: { courseId?: string; compa
   const [search, setSearch] = useState('')
 
   const liffId = process.env.NEXT_PUBLIC_LIFF_ID
+  const isAutoMode = !!profileId
+
+  const doBind = useCallback(async (targetProfileId: string, lineUserId: string) => {
+    setPhase('binding')
+    try {
+      const res = await fetch('/api/line-bind', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile_id: targetProfileId, line_user_id: lineUserId }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setBoundName(data.name || '')
+        setPhase('success')
+      } else {
+        setMessage(data.error || '綁定失敗')
+        setPhase('error')
+      }
+    } catch {
+      setMessage('網路錯誤，請稍後重試')
+      setPhase('error')
+    }
+  }, [])
 
   const initLiff = useCallback(async () => {
     if (!liffId) {
@@ -64,7 +93,13 @@ export function LiffBindFlow({ courseId, companyId }: { courseId?: string; compa
       const profile = await window.liff.getProfile()
       setLineProfile(profile)
 
-      // Fetch student list
+      // 個人模式：自動綁定
+      if (profileId) {
+        await doBind(profileId, profile.userId)
+        return
+      }
+
+      // 名單模式：載入學員清單
       const params = new URLSearchParams()
       if (courseId) params.set('course_id', courseId)
       if (companyId) params.set('company_id', companyId)
@@ -83,36 +118,13 @@ export function LiffBindFlow({ courseId, companyId }: { courseId?: string; compa
       setMessage(err instanceof Error ? err.message : '初始化失敗')
       setPhase('liff-error')
     }
-  }, [liffId, courseId, companyId])
+  }, [liffId, courseId, companyId, profileId, doBind])
 
   useEffect(() => { initLiff() }, [initLiff])
 
-  async function handleSelect(student: Student) {
+  function handleSelect(student: Student) {
     if (!lineProfile) return
-    setPhase('binding')
-
-    try {
-      const res = await fetch('/api/line-bind', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          profile_id: student.id,
-          line_user_id: lineProfile.userId,
-        }),
-      })
-      const data = await res.json()
-
-      if (data.ok) {
-        setBoundName(data.name || student.name)
-        setPhase('success')
-      } else {
-        setMessage(data.error || '綁定失敗')
-        setPhase('error')
-      }
-    } catch {
-      setMessage('網路錯誤，請稍後重試')
-      setPhase('error')
-    }
+    doBind(student.id, lineProfile.userId)
   }
 
   const filtered = search
@@ -130,8 +142,20 @@ export function LiffBindFlow({ courseId, companyId }: { courseId?: string; compa
             </svg>
           </div>
           <h1 className="text-xl font-bold text-gray-900">LINE 快速綁定</h1>
-          <p className="text-sm text-gray-500 mt-1">點選您的姓名即可完成綁定</p>
+          <p className="text-sm text-gray-500 mt-1">
+            {isAutoMode ? '綁定中，請稍候...' : '點選您的姓名即可完成綁定'}
+          </p>
         </div>
+
+        {/* Loading */}
+        {(phase === 'loading' || phase === 'binding') && (
+          <div className="text-center py-12">
+            <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-sm text-gray-500">
+              {phase === 'loading' ? '正在連接 LINE...' : '綁定中...'}
+            </p>
+          </div>
+        )}
 
         {/* LINE profile info */}
         {lineProfile && phase === 'select' && (
@@ -147,14 +171,6 @@ export function LiffBindFlow({ courseId, companyId }: { courseId?: string; compa
               <p className="text-sm font-medium text-gray-900 truncate">{lineProfile.displayName}</p>
               <p className="text-xs text-gray-400">LINE 帳號</p>
             </div>
-          </div>
-        )}
-
-        {/* Loading */}
-        {phase === 'loading' && (
-          <div className="text-center py-12">
-            <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm text-gray-500">正在連接 LINE...</p>
           </div>
         )}
 
@@ -201,14 +217,6 @@ export function LiffBindFlow({ courseId, companyId }: { courseId?: string; compa
           </div>
         )}
 
-        {/* Binding in progress */}
-        {phase === 'binding' && (
-          <div className="text-center py-12">
-            <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm text-gray-500">綁定中...</p>
-          </div>
-        )}
-
         {/* Success */}
         {phase === 'success' && (
           <div className="bg-white rounded-2xl shadow-sm border border-green-200 p-6 text-center">
@@ -217,7 +225,9 @@ export function LiffBindFlow({ courseId, companyId }: { courseId?: string; compa
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <p className="text-lg font-semibold text-green-700">{boundName}，綁定成功！</p>
+            <p className="text-lg font-semibold text-green-700">
+              {boundName ? `${boundName}，綁定成功！` : '綁定成功！'}
+            </p>
             <p className="text-sm text-gray-500 mt-2">之後會透過 LINE 通知您課程相關資訊</p>
             <p className="text-xs text-gray-400 mt-3">可以關閉此頁面了</p>
           </div>
@@ -235,7 +245,7 @@ export function LiffBindFlow({ courseId, companyId }: { courseId?: string; compa
             {phase === 'liff-error' && (
               <p className="text-xs text-gray-400 mt-2">請確認是否在 LINE App 中開啟此頁面</p>
             )}
-            {phase === 'error' && (
+            {phase === 'error' && !isAutoMode && (
               <button
                 onClick={() => setPhase('select')}
                 className="mt-4 text-sm text-green-600 hover:text-green-700 font-medium"

@@ -5,11 +5,11 @@ export const metadata = { title: 'LINE 快速綁定 | ID3A 管理平台' }
 export default async function LiffBindPage({
   searchParams,
 }: {
-  searchParams: Promise<{ course_id?: string; company_id?: string }>
+  searchParams: Promise<{ course_id?: string; company_id?: string; pid?: string }>
 }) {
-  const { course_id, company_id } = await searchParams
+  const { course_id, company_id, pid } = await searchParams
 
-  if (!course_id && !company_id) {
+  if (!course_id && !company_id && !pid) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="text-center">
@@ -20,5 +20,5 @@ export default async function LiffBindPage({
     )
   }
 
-  return <LiffBindFlow courseId={course_id} companyId={company_id} />
+  return <LiffBindFlow courseId={course_id} companyId={company_id} profileId={pid} />
 }
