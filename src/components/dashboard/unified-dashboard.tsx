@@ -566,7 +566,7 @@ const FORM_TYPE_LABELS: Record<string, string> = {
   job_analysis: '工作分析',
   job_description: '工作說明書',
   competency_standard: '職能標準',
-  competency_assessment: '職能考核',
+  competency_assessment: '職能落差',
 }
 
 const ENTRY_STATUS_MAP: Record<string, { label: string; variant: 'default' | 'info' | 'warning' | 'success' }> = {

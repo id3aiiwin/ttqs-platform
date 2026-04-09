@@ -17,7 +17,7 @@ const FORM_TYPES = [
   { key: 'job_analysis', label: '工作分析' },
   { key: 'job_description', label: '工作說明書' },
   { key: 'competency_standard', label: '職能標準' },
-  { key: 'competency_assessment', label: '職能考核' },
+  { key: 'competency_assessment', label: '職能落差' },
 ]
 
 const STATUS_COLORS: Record<string, string> = {

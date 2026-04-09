@@ -17,7 +17,7 @@ const TABS = [
   { key: 'analysis', label: '工作分析' },
   { key: 'jd', label: '工作說明書' },
   { key: 'standards', label: '職能標準' },
-  { key: 'assessment', label: '職能考核' },
+  { key: 'assessment', label: '職能落差' },
   { key: 'matrix', label: '職能矩陣' },
 ]
 
@@ -32,7 +32,7 @@ const TAB_LABELS: Record<string, string> = {
   analysis: '工作分析',
   jd: '工作說明書',
   standards: '職能標準',
-  assessment: '職能考核',
+  assessment: '職能落差',
 }
 
 const ENTRY_STATUS: Record<string, { label: string; variant: 'default' | 'info' | 'warning' | 'success' | 'danger' }> = {

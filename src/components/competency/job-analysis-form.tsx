@@ -55,6 +55,7 @@ interface FieldValue {
 interface Props {
   entryId: string
   companyId: string
+  employeeName?: string
   fields: TemplateField[]
   values: FieldValue[]
   isConsultant: boolean
@@ -76,7 +77,7 @@ function extractValue(raw: unknown): unknown {
 /*  Main component                                                     */
 /* ------------------------------------------------------------------ */
 
-export function JobAnalysisForm({ entryId, companyId, fields, values, isConsultant, readOnly = false }: Props) {
+export function JobAnalysisForm({ entryId, companyId, employeeName, fields, values, isConsultant, readOnly = false }: Props) {
   const router = useRouter()
   const [submitPending, startSubmitTransition] = useTransition()
 
@@ -112,6 +113,7 @@ export function JobAnalysisForm({ entryId, companyId, fields, values, isConsulta
           valueEntry={valuesMap.current[field.field_name]}
           companyId={companyId}
           readOnly={readOnly}
+          employeeName={employeeName}
         />
       ))}
 
@@ -156,11 +158,13 @@ function Stage1Section({
   valueEntry,
   companyId,
   readOnly,
+  employeeName,
 }: {
   field: TemplateField
   valueEntry?: { valueId: string; value: unknown }
   companyId: string
   readOnly: boolean
+  employeeName?: string
 }) {
   const opts = field.options as FieldOptions | null
   const label = field.display_name || field.standard_name || field.field_name
@@ -174,6 +178,7 @@ function Stage1Section({
         valueEntry={valueEntry}
         companyId={companyId}
         readOnly={readOnly}
+        employeeName={employeeName}
       />
     )
   }
@@ -220,6 +225,7 @@ function BasicInfoSection({
   valueEntry,
   companyId,
   readOnly,
+  employeeName,
 }: {
   label: string
   description: string | null
@@ -227,9 +233,28 @@ function BasicInfoSection({
   valueEntry?: { valueId: string; value: unknown }
   companyId: string
   readOnly: boolean
+  employeeName?: string
 }) {
-  const initial = (valueEntry?.value ?? {}) as Record<string, string>
+  const raw = (valueEntry?.value ?? {}) as Record<string, string>
+  // 自動帶入分析人姓名（如果尚未填寫）
+  const initial = { ...raw }
+  if (employeeName && !initial.analyst) {
+    initial.analyst = employeeName
+  }
   const [data, setData] = useState<Record<string, string>>(initial)
+  const [autoFilled, setAutoFilled] = useState(false)
+
+  // 首次載入時，如果有自動帶入就存一次
+  const autoSaveRef = useRef(false)
+  if (!autoSaveRef.current && employeeName && !raw.analyst && valueEntry?.valueId && !readOnly) {
+    autoSaveRef.current = true
+    // defer save to avoid setState during render
+    setTimeout(() => {
+      updateFieldValue(valueEntry.valueId, { v: initial }, companyId)
+      setAutoFilled(true)
+      setTimeout(() => setAutoFilled(false), 2000)
+    }, 100)
+  }
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -261,7 +286,7 @@ function BasicInfoSection({
       <CardBody>
         <div className="grid grid-cols-2 gap-4">
           {fieldDefs.map((fd) => (
-            <div key={fd.key} className={fd.key === 'co_units' ? 'col-span-2' : ''}>
+            <div key={fd.key}>
               <label className="text-sm font-medium text-gray-700 block mb-1">
                 {fd.label}
                 {fd.required && <span className="text-red-500 ml-0.5">*</span>}

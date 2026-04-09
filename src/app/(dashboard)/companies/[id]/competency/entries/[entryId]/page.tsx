@@ -13,7 +13,7 @@ const FORM_TYPE_LABELS: Record<string, string> = {
   job_analysis: '工作分析',
   job_description: '工作說明書',
   competency_standard: '職能標準',
-  competency_assessment: '職能考核',
+  competency_assessment: '職能落差',
 }
 
 const FORM_TYPE_TO_TAB: Record<string, string> = {
@@ -147,6 +147,7 @@ export default async function EntryDetailPage({
             <JobAnalysisForm
               entryId={entryId}
               companyId={companyId}
+              employeeName={employee?.full_name || employee?.email || ''}
               fields={(templateFields ?? []).map((f) => ({
                 ...f,
                 description: (f.options as Record<string, unknown> | null)?.description as string | null ?? null,
