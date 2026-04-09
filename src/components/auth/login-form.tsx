@@ -35,9 +35,9 @@ function getPasswordStrength(password: string): { level: 'weak' | 'medium' | 'st
   return { level: 'medium', label: '中等', color: 'bg-amber-500', width: 'w-2/3' }
 }
 
-export function LoginForm() {
+export function LoginForm({ companyId, companyName }: { companyId?: string; companyName?: string }) {
   const router = useRouter()
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login')
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>(companyId ? 'register' : 'login')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -119,7 +119,7 @@ export function LoginForm() {
       const { error } = await supabase.auth.signUp({
         email,
         password: pwd,
-        options: { data: { full_name: name } },
+        options: { data: { full_name: name, ...(companyId ? { company_id: companyId } : {}) } },
       })
 
       if (error) {
@@ -171,6 +171,11 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      {companyId && companyName && (
+        <div className="rounded-lg bg-indigo-50 border border-indigo-200 px-4 py-3 text-sm text-indigo-700">
+          您正在註冊加入 <span className="font-semibold">{companyName}</span>
+        </div>
+      )}
       {mode === 'register' && (
         <Input id="name" name="name" type="text" label="姓名" placeholder="您的姓名" required autoComplete="name" />
       )}

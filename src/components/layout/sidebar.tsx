@@ -139,7 +139,7 @@ export function Sidebar({ role, roles, fullName, email, onLogout }: SidebarProps
                   className="w-full flex items-center justify-between px-3 py-1.5 group"
                 >
                   <span className={cn(
-                    'text-xs font-semibold uppercase tracking-wider',
+                    'text-sm font-semibold uppercase tracking-wider',
                     hasActive ? 'text-indigo-500' : 'text-gray-400'
                   )}>
                     {group.title}
@@ -151,7 +151,7 @@ export function Sidebar({ role, roles, fullName, email, onLogout }: SidebarProps
                   </svg>
                 </button>
               ) : (
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 py-1.5">
+                <p className="text-sm font-semibold text-gray-400 uppercase tracking-wider px-3 py-1.5">
                   {group.title}
                 </p>
               )}

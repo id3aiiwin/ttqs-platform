@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Card, CardHeader, CardBody } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PDDRO_DEFAULT_FORMS } from '@/lib/pddro-defaults'
+import { CopyInviteLink } from './copy-invite-link'
 import type { Company } from '@/types/database'
 
 const PHASE_COLORS: Record<string, string> = {
@@ -235,6 +236,7 @@ export function CompanyWorkspace({ company, stats }: WorkspaceProps) {
               </Card>
             </Link>
           ))}
+          <CopyInviteLink companyId={id} />
         </div>
       </div>
     </div>

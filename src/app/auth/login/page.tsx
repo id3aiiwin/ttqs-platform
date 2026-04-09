@@ -1,8 +1,17 @@
 import { LoginForm } from '@/components/auth/login-form'
+import { createServiceClient } from '@/lib/supabase/server'
 
 export const metadata = { title: '登入 | ID3A 管理平台' }
 
-export default function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ company?: string }> }) {
+  const { company: companyId } = await searchParams
+
+  let companyName: string | undefined
+  if (companyId) {
+    const supabase = createServiceClient()
+    const { data } = await supabase.from('companies').select('name').eq('id', companyId).single()
+    companyName = data?.name ?? undefined
+  }
   return (
     <div className="min-h-screen flex">
       {/* 左側品牌面板 */}
@@ -109,7 +118,7 @@ export default function LoginPage() {
           </div>
 
           <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/60 border border-gray-100 p-8">
-            <LoginForm />
+            <LoginForm companyId={companyId} companyName={companyName} />
           </div>
 
           <div className="text-center mt-8">
