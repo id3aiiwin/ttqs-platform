@@ -598,6 +598,7 @@ function Stage2Section({
   }
 
   const cleanDesc = desc.replace(/適用動詞[：:][^。.]+[。.]?\s*/, '').trim()
+  const example = (opts as Record<string, unknown> | null)?.example as string | undefined
 
   return (
     <Card className={enabled ? 'ring-1 ring-purple-200' : 'opacity-75'}>
@@ -626,6 +627,12 @@ function Stage2Section({
             </div>
           )}
         </div>
+        {example && (
+          <div className="mt-2 ml-8 rounded-lg bg-purple-50 border border-purple-100 px-3 py-2">
+            <p className="text-[10px] font-semibold text-purple-500 mb-1">填寫範例</p>
+            <p className="text-xs text-purple-700 whitespace-pre-line leading-relaxed">{example}</p>
+          </div>
+        )}
       </CardHeader>
 
       {enabled && (
