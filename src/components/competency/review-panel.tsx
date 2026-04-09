@@ -5,6 +5,14 @@ import { useRouter } from 'next/navigation'
 import { addEntryReview, updateEntryStatus } from '@/app/(dashboard)/companies/[id]/competency/actions'
 import { Button } from '@/components/ui/button'
 
+interface ReviewRecord {
+  id: string
+  reviewerName: string
+  comment: string
+  action: 'approved' | 'needs_revision'
+  createdAt: string
+}
+
 interface ReviewPanelProps {
   entryId: string
   companyId: string
@@ -12,9 +20,10 @@ interface ReviewPanelProps {
   isConsultant: boolean
   reviewedBy: string | null
   reviewedAt: string | null
+  reviews?: ReviewRecord[]
 }
 
-export function ReviewPanel({ entryId, companyId, status, isConsultant, reviewedBy, reviewedAt }: ReviewPanelProps) {
+export function ReviewPanel({ entryId, companyId, status, isConsultant, reviewedBy, reviewedAt, reviews = [] }: ReviewPanelProps) {
   const [comment, setComment] = useState('')
   const [pending, startTransition] = useTransition()
   const router = useRouter()
@@ -58,16 +67,6 @@ export function ReviewPanel({ entryId, companyId, status, isConsultant, reviewed
             </span>
           </div>
         </div>
-
-        {/* 審閱時間 */}
-        {reviewedAt && (
-          <div>
-            <p className="text-xs text-gray-400 mb-1">最後審閱</p>
-            <p className="text-sm text-gray-700">
-              {new Date(reviewedAt).toLocaleDateString('zh-TW')}
-            </p>
-          </div>
-        )}
 
         {/* 顧問批閱功能 */}
         {isConsultant && status === 'submitted' && (
@@ -133,6 +132,38 @@ export function ReviewPanel({ entryId, companyId, status, isConsultant, reviewed
         {status === 'approved' && (
           <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm text-green-700">
             此表單已核准通過
+          </div>
+        )}
+
+        {/* 審閱歷史紀錄 */}
+        {reviews.length > 0 && (
+          <div className="border-t border-gray-100 pt-4">
+            <p className="text-xs font-medium text-gray-500 mb-3">審閱歷史</p>
+            <div className="flex flex-col gap-3">
+              {reviews.map((r) => (
+                <div key={r.id} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-gray-700">{r.reviewerName}</span>
+                    <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                      r.action === 'approved'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-red-100 text-red-700'
+                    }`}>
+                      {r.action === 'approved' ? '核准' : '退回'}
+                    </span>
+                  </div>
+                  {r.comment && (
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{r.comment}</p>
+                  )}
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    {new Date(r.createdAt).toLocaleString('zh-TW', {
+                      year: 'numeric', month: '2-digit', day: '2-digit',
+                      hour: '2-digit', minute: '2-digit',
+                    })}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

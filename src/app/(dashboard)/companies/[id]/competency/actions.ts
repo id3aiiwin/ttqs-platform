@@ -190,6 +190,14 @@ export async function addEntryReview(
 
   if (!user) return { error: '請先登入' }
 
+  // 寫入審閱歷史
+  await supabase.from('competency_form_reviews').insert({
+    entry_id: entryId,
+    reviewer_id: user.id,
+    comment: comment.trim(),
+    action: status,
+  })
+
   // 更新 entry 狀態
   await supabase
     .from('competency_form_entries')

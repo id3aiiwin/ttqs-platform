@@ -79,6 +79,34 @@ export default async function EntryDetailPage({
     .select('id, template_field_id, field_name, value')
     .eq('entry_id', entryId)
 
+  // 取得審閱歷史
+  const { data: reviews } = await serviceClient
+    .from('competency_form_reviews')
+    .select('id, reviewer_id, comment, action, created_at')
+    .eq('entry_id', entryId)
+    .order('created_at', { ascending: false })
+
+  // 取得審閱者名稱
+  const reviewerIds = [...new Set((reviews ?? []).map((r) => r.reviewer_id))]
+  const reviewerMap: Record<string, string> = {}
+  if (reviewerIds.length > 0) {
+    const { data: reviewers } = await serviceClient
+      .from('profiles')
+      .select('id, full_name, email')
+      .in('id', reviewerIds)
+    reviewers?.forEach((r) => {
+      reviewerMap[r.id] = r.full_name || r.email || '顧問'
+    })
+  }
+
+  const reviewHistory = (reviews ?? []).map((r) => ({
+    id: r.id,
+    reviewerName: reviewerMap[r.reviewer_id] || '顧問',
+    comment: r.comment,
+    action: r.action as 'approved' | 'needs_revision',
+    createdAt: r.created_at,
+  }))
+
   // 組合欄位和值
   const valuesMap: Record<string, { valueId: string; value: unknown }> = {}
   fieldValues?.forEach((v) => {
@@ -167,6 +195,7 @@ export default async function EntryDetailPage({
         isConsultant={isConsultant}
         reviewedBy={entry.reviewed_by}
         reviewedAt={entry.reviewed_at}
+        reviews={reviewHistory}
       />
     </div>
   )
