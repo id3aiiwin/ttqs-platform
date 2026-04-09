@@ -195,6 +195,18 @@ export default async function DashboardPage() {
       course: ecMap[e.course_id] ?? null,
     }))
     data.employeeCompanyName = compRes.data?.name ?? ''
+    data.employeeCompanyId = profile.company_id ?? ''
+
+    // 取得同仁的職能表單（工作說明書等）
+    if (profile.company_id) {
+      const { data: myEntries } = await sc
+        .from('competency_form_entries')
+        .select('id, form_type, status, created_at')
+        .eq('employee_id', user.id)
+        .eq('company_id', profile.company_id)
+        .order('created_at', { ascending: false })
+      data.myFormEntries = myEntries ?? []
+    }
   }
 
   return <UnifiedDashboard profile={profile} roles={roles} data={data} />

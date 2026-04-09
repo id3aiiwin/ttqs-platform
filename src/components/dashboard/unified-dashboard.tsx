@@ -562,16 +562,57 @@ function AnalystContent({ profile, data }: { profile: Profile; data: Record<stri
   )
 }
 
+const FORM_TYPE_LABELS: Record<string, string> = {
+  job_analysis: '工作分析',
+  job_description: '工作說明書',
+  competency_standard: '職能標準',
+  competency_assessment: '職能考核',
+}
+
+const ENTRY_STATUS_MAP: Record<string, { label: string; variant: 'default' | 'info' | 'warning' | 'success' }> = {
+  draft:       { label: '草稿',   variant: 'default' },
+  in_progress: { label: '填寫中', variant: 'info' },
+  submitted:   { label: '已送審', variant: 'warning' },
+  reviewed:    { label: '已審閱', variant: 'info' },
+  approved:    { label: '已核准', variant: 'success' },
+}
+
 function EmployeeContent({ data }: { data: Record<string, unknown> }) {
   const enrollments = (data.enrollments ?? []) as { id: string; status: string; course: { title: string; start_date: string | null; hours: number | null; course_type: string } | null }[]
   const companyEnrollments = enrollments.filter(e => e.course?.course_type === 'enterprise')
+  const companyId = (data.employeeCompanyId as string) ?? ''
+  const formEntries = (data.myFormEntries ?? []) as { id: string; form_type: string; status: string; created_at: string }[]
+  const pendingEntries = formEntries.filter(e => e.status !== 'approved')
   return (
     <>
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard label="企業" value={(data.employeeCompanyName as string) ?? '—'} color="text-indigo-600" />
         <StatCard label="企業課程" value={companyEnrollments.length} color="text-green-600" />
-        <StatCard label="時數" value={companyEnrollments.filter(e => e.status === 'completed').reduce((s, e) => s + (e.course?.hours ?? 0), 0)} sub="小時" color="text-amber-600" />
+        <StatCard label="待填表單" value={pendingEntries.length} color={pendingEntries.length > 0 ? 'text-red-600' : 'text-gray-400'} />
       </div>
+
+      {/* 待填表單 — 最優先顯示 */}
+      {formEntries.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader><p className="font-semibold text-gray-900">我的表單</p></CardHeader>
+          <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
+            {formEntries.map(e => {
+              const st = ENTRY_STATUS_MAP[e.status] ?? ENTRY_STATUS_MAP.draft
+              return (
+                <Link key={e.id} href={`/companies/${companyId}/competency/entries/${e.id}`}
+                  className="px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{FORM_TYPE_LABELS[e.form_type] ?? e.form_type}</p>
+                    <p className="text-xs text-gray-400">{new Date(e.created_at).toLocaleDateString('zh-TW')}</p>
+                  </div>
+                  <Badge variant={st.variant}>{st.label}</Badge>
+                </Link>
+              )
+            })}
+          </div>
+        </Card>
+      )}
+
       <Card><CardHeader><p className="font-semibold text-gray-900">企業課程紀錄</p></CardHeader>
         <div className="divide-y divide-gray-100 max-h-60 overflow-y-auto">
           {companyEnrollments.map(e => (
