@@ -139,7 +139,7 @@ export function Sidebar({ role, roles, fullName, email, onLogout }: SidebarProps
                   className="w-full flex items-center justify-between px-3 py-1.5 group"
                 >
                   <span className={cn(
-                    'text-[10px] font-semibold uppercase tracking-wider',
+                    'text-xs font-semibold uppercase tracking-wider',
                     hasActive ? 'text-indigo-500' : 'text-gray-400'
                   )}>
                     {group.title}
@@ -151,7 +151,7 @@ export function Sidebar({ role, roles, fullName, email, onLogout }: SidebarProps
                   </svg>
                 </button>
               ) : (
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 py-1.5">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 py-1.5">
                   {group.title}
                 </p>
               )}
@@ -162,7 +162,7 @@ export function Sidebar({ role, roles, fullName, email, onLogout }: SidebarProps
                     const active = pathname === item.href || pathname.startsWith(item.href + '/')
                     return (
                       <Link key={item.href} href={item.href}
-                        className={cn('flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
+                        className={cn('flex items-center gap-2.5 px-3 py-2 rounded-lg text-base transition-colors',
                           active ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900')}>
                         <span className={cn(active ? 'text-indigo-500' : 'text-gray-400')}>{item.icon}</span>
                         {item.label}
