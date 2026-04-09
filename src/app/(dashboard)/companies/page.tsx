@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { TTQS_LEVELS } from '@/lib/utils'
 import type { Company } from '@/types/database'
+import { CopyInviteBtn } from '@/components/company/copy-invite-btn'
 import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '企業管理 | ID3A 管理平台' }
@@ -65,6 +66,7 @@ export default async function CompaniesPage() {
                   <th className="px-6 py-3 text-left">狀態</th>
                   <th className="px-6 py-3 text-left">TTQS 等級</th>
                   <th className="px-6 py-3 text-left">到期日</th>
+                  <th className="px-6 py-3 text-left">註冊連結</th>
                   <th className="px-6 py-3 text-left"></th>
                 </tr>
               </thead>
@@ -90,6 +92,9 @@ export default async function CompaniesPage() {
                       ) : <span className="text-gray-400">-</span>}
                     </td>
                     <td className="px-6 py-4 text-gray-500">{company.ttqs_expiry_date ?? '-'}</td>
+                    <td className="px-6 py-4">
+                      <CopyInviteBtn companyId={company.id} />
+                    </td>
                     <td className="px-6 py-4">
                       <Link href={`/companies/${company.id}/edit`}
                         className="text-indigo-600 hover:text-indigo-700 text-xs font-medium">
