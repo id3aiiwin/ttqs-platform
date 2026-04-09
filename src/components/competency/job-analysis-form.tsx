@@ -183,13 +183,12 @@ function Stage1Section({
     )
   }
 
-  if (field.field_name === 'duty_task_inventory') {
+  if (field.field_name === 'job_analysis_table' || field.field_name === 'duty_task_inventory') {
     return (
-      <DutyTaskSection
+      <JobAnalysisTableSection
         label={label}
         description={field.description}
-        fieldDefs={opts?.fields ?? []}
-        addLabel={opts?.add_label ?? '新增'}
+        addLabel={opts?.add_label ?? '新增職責'}
         valueEntry={valueEntry}
         companyId={companyId}
         readOnly={readOnly}
@@ -197,19 +196,8 @@ function Stage1Section({
     )
   }
 
-  if (field.field_name === 'task_breakdown') {
-    return (
-      <TaskBreakdownSection
-        label={label}
-        description={field.description}
-        fieldDefs={opts?.fields ?? []}
-        addLabel={opts?.add_label ?? '新增'}
-        valueEntry={valueEntry}
-        companyId={companyId}
-        readOnly={readOnly}
-      />
-    )
-  }
+  // legacy: task_breakdown (已合併，不再單獨顯示)
+  if (field.field_name === 'task_breakdown') return null
 
   return null
 }
@@ -309,18 +297,41 @@ function BasicInfoSection({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Duty + Task Inventory                                              */
+/*  Job Analysis Table (unified: Duty → Task → Steps)                  */
 /* ------------------------------------------------------------------ */
 
-interface DutyItem {
-  duty_name: string
-  tasks: string[]
+interface TaskItem {
+  task_name: string
+  steps: string[]
 }
 
-function DutyTaskSection({
+interface DutyWithTasks {
+  duty_name: string
+  tasks: TaskItem[]
+}
+
+function migrateToUnifiedFormat(raw: unknown): DutyWithTasks[] {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return [{ duty_name: '', tasks: [{ task_name: '', steps: [''] }] }]
+  }
+  // Already new format
+  const first = raw[0] as Record<string, unknown>
+  if (first.tasks && Array.isArray(first.tasks) && first.tasks.length > 0 && typeof first.tasks[0] === 'object') {
+    return raw as DutyWithTasks[]
+  }
+  // Old duty_task_inventory format: { duty_name, tasks: string[] }
+  if (first.duty_name && Array.isArray(first.tasks)) {
+    return (raw as { duty_name: string; tasks: string[] }[]).map((d) => ({
+      duty_name: d.duty_name,
+      tasks: d.tasks.map((t) => ({ task_name: t, steps: [''] })),
+    }))
+  }
+  return [{ duty_name: '', tasks: [{ task_name: '', steps: [''] }] }]
+}
+
+function JobAnalysisTableSection({
   label,
   description,
-  fieldDefs,
   addLabel,
   valueEntry,
   companyId,
@@ -328,48 +339,58 @@ function DutyTaskSection({
 }: {
   label: string
   description: string | null
-  fieldDefs: FieldDef[]
   addLabel: string
   valueEntry?: { valueId: string; value: unknown }
   companyId: string
   readOnly: boolean
 }) {
-  const initial = (Array.isArray(valueEntry?.value) ? valueEntry!.value : [{ duty_name: '', tasks: [''] }]) as DutyItem[]
-  const [duties, setDuties] = useState<DutyItem[]>(initial)
+  const [duties, setDuties] = useState<DutyWithTasks[]>(() => migrateToUnifiedFormat(valueEntry?.value))
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const dutyFieldDef = fieldDefs.find((f) => f.key === 'duty_name')
-  const taskFieldDef = fieldDefs.find((f) => f.key === 'tasks')
-
   const doSave = useCallback(
-    (newDuties: DutyItem[]) => {
+    (next: DutyWithTasks[]) => {
       if (!valueEntry?.valueId || readOnly) return
       if (saveTimer.current) clearTimeout(saveTimer.current)
       saveTimer.current = setTimeout(async () => {
-        await updateFieldValue(valueEntry.valueId, { v: newDuties }, companyId)
+        await updateFieldValue(valueEntry.valueId, { v: next }, companyId)
       }, 600)
     },
     [valueEntry?.valueId, companyId, readOnly]
   )
 
-  function updateDuty(index: number, newDuty: DutyItem) {
-    const next = [...duties]
-    next[index] = newDuty
+  function update(next: DutyWithTasks[]) {
     setDuties(next)
     doSave(next)
   }
 
+  function updateDutyName(di: number, name: string) {
+    const next = [...duties]; next[di] = { ...next[di], duty_name: name }; update(next)
+  }
   function addDuty() {
-    const next = [...duties, { duty_name: '', tasks: [''] }]
-    setDuties(next)
-    doSave(next)
+    update([...duties, { duty_name: '', tasks: [{ task_name: '', steps: [''] }] }])
   }
-
-  function removeDuty(index: number) {
-    if (duties.length <= 1) return
-    const next = duties.filter((_, i) => i !== index)
-    setDuties(next)
-    doSave(next)
+  function removeDuty(di: number) {
+    if (duties.length <= 1) return; update(duties.filter((_, i) => i !== di))
+  }
+  function updateTaskName(di: number, ti: number, name: string) {
+    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], task_name: name }; next[di] = { ...next[di], tasks }; update(next)
+  }
+  function addTask(di: number) {
+    const next = [...duties]; next[di] = { ...next[di], tasks: [...next[di].tasks, { task_name: '', steps: [''] }] }; update(next)
+  }
+  function removeTask(di: number, ti: number) {
+    if (duties[di].tasks.length <= 1) return
+    const next = [...duties]; next[di] = { ...next[di], tasks: next[di].tasks.filter((_, i) => i !== ti) }; update(next)
+  }
+  function updateStep(di: number, ti: number, si: number, val: string) {
+    const next = [...duties]; const tasks = [...next[di].tasks]; const steps = [...tasks[ti].steps]; steps[si] = val; tasks[ti] = { ...tasks[ti], steps }; next[di] = { ...next[di], tasks }; update(next)
+  }
+  function addStep(di: number, ti: number) {
+    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], steps: [...tasks[ti].steps, ''] }; next[di] = { ...next[di], tasks }; update(next)
+  }
+  function removeStep(di: number, ti: number, si: number) {
+    if (duties[di].tasks[ti].steps.length <= 1) return
+    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], steps: tasks[ti].steps.filter((_, i) => i !== si) }; next[di] = { ...next[di], tasks }; update(next)
   }
 
   return (
@@ -377,86 +398,102 @@ function DutyTaskSection({
       <CardHeader>
         <h3 className="font-semibold text-gray-900">{label}</h3>
         {description && <p className="text-xs text-gray-500 mt-0.5">{description}</p>}
+        <p className="text-xs text-gray-400 mt-1">
+          範例 — 工作：家管 / 職責：準備餐點 / 任務：烤餅乾 / 步驟：買材料 → 看食譜 → 混合材料 → 調整烤箱熱度
+        </p>
       </CardHeader>
       <CardBody>
         <div className="flex flex-col gap-6">
           {duties.map((duty, di) => (
-            <div key={di} className="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+            <div key={di} className="border border-blue-200 rounded-lg p-4 bg-blue-50/30">
+              {/* Duty header */}
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-blue-700">職責 #{di + 1}</span>
+                <span className="text-sm font-semibold text-blue-700">職責 #{di + 1}</span>
                 {!readOnly && duties.length > 1 && (
-                  <button onClick={() => removeDuty(di)} className="text-red-400 hover:text-red-600 text-xs">
-                    移除
-                  </button>
+                  <button onClick={() => removeDuty(di)} className="text-red-400 hover:text-red-600 text-xs">移除職責</button>
                 )}
               </div>
 
               {/* Duty name */}
-              <div className="mb-3">
+              <div className="mb-4">
                 <label className="text-sm font-medium text-gray-700 block mb-1">
-                  {dutyFieldDef?.label ?? '職責 (Duty)'}
-                  <span className="text-red-500 ml-0.5">*</span>
+                  職責 (Duty)<span className="text-red-500 ml-0.5">*</span>
                 </label>
-                {dutyFieldDef?.help && (
-                  <p className="text-xs text-gray-400 mb-1">{dutyFieldDef.help}</p>
-                )}
+                <p className="text-xs text-gray-400 mb-1">相關任務的總稱，說明主要的工作面向</p>
                 <input
                   type="text"
                   value={duty.duty_name}
-                  onChange={(e) => updateDuty(di, { ...duty, duty_name: e.target.value })}
+                  onChange={(e) => updateDutyName(di, e.target.value)}
                   readOnly={readOnly}
-                  placeholder={dutyFieldDef?.placeholder}
+                  placeholder="例：準備餐點"
                   className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               {/* Tasks */}
-              <div className="ml-6">
-                <label className="text-sm font-medium text-gray-700 block mb-1">
-                  {taskFieldDef?.label ?? '任務 (Task)'}
-                  <span className="text-red-500 ml-0.5">*</span>
-                </label>
-                {taskFieldDef?.help && (
-                  <p className="text-xs text-gray-400 mb-1">{taskFieldDef.help}</p>
-                )}
-                <div className="flex flex-col gap-2">
-                  {duty.tasks.map((task, ti) => (
-                    <div key={ti} className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400 w-6 text-right">{ti + 1}.</span>
-                      <input
-                        type="text"
-                        value={task}
-                        onChange={(e) => {
-                          const newTasks = [...duty.tasks]
-                          newTasks[ti] = e.target.value
-                          updateDuty(di, { ...duty, tasks: newTasks })
-                        }}
-                        readOnly={readOnly}
-                        placeholder={taskFieldDef?.placeholder}
-                        className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500"
-                      />
+              <div className="ml-4 flex flex-col gap-4">
+                {duty.tasks.map((task, ti) => (
+                  <div key={ti} className="border border-gray-200 rounded-lg p-3 bg-white">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-gray-500">任務 #{ti + 1}</span>
                       {!readOnly && duty.tasks.length > 1 && (
-                        <button
-                          onClick={() => {
-                            const newTasks = duty.tasks.filter((_, i) => i !== ti)
-                            updateDuty(di, { ...duty, tasks: newTasks })
-                          }}
-                          className="text-red-400 hover:text-red-600 text-xs"
-                        >
-                          ✕
-                        </button>
+                        <button onClick={() => removeTask(di, ti)} className="text-red-400 hover:text-red-600 text-xs">移除</button>
                       )}
                     </div>
-                  ))}
-                  {!readOnly && (
-                    <button
-                      onClick={() => updateDuty(di, { ...duty, tasks: [...duty.tasks, ''] })}
-                      className="text-blue-600 hover:text-blue-800 text-xs self-start ml-8"
-                    >
-                      + 新增任務
-                    </button>
-                  )}
-                </div>
+
+                    {/* Task name */}
+                    <div className="mb-2">
+                      <label className="text-xs font-medium text-gray-600 block mb-1">
+                        任務 (Task)<span className="text-red-500 ml-0.5">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={task.task_name}
+                        onChange={(e) => updateTaskName(di, ti, e.target.value)}
+                        readOnly={readOnly}
+                        placeholder="例：烤餅乾"
+                        className="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+
+                    {/* Steps */}
+                    <div className="ml-4">
+                      <label className="text-xs font-medium text-gray-600 block mb-1">
+                        構成要素／步驟<span className="text-red-500 ml-0.5">*</span>
+                      </label>
+                      <p className="text-xs text-gray-400 mb-1">完成該任務必須依序執行的詳細動作</p>
+                      <div className="flex flex-col gap-1.5">
+                        {task.steps.map((step, si) => (
+                          <div key={si} className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 w-5 text-right">{si + 1}.</span>
+                            <input
+                              type="text"
+                              value={step}
+                              onChange={(e) => updateStep(di, ti, si, e.target.value)}
+                              readOnly={readOnly}
+                              placeholder={si === 0 ? '例：買材料' : si === 1 ? '例：看食譜或說明書' : '執行步驟'}
+                              className="flex-1 text-sm border border-gray-300 rounded px-2.5 py-1 focus:outline-none focus:border-blue-500"
+                            />
+                            {!readOnly && task.steps.length > 1 && (
+                              <button onClick={() => removeStep(di, ti, si)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
+                            )}
+                          </div>
+                        ))}
+                        {!readOnly && (
+                          <button onClick={() => addStep(di, ti)} className="text-blue-600 hover:text-blue-800 text-xs self-start ml-7">
+                            + 新增步驟
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {!readOnly && (
+                  <button onClick={() => addTask(di)} className="text-blue-600 hover:text-blue-800 text-xs font-medium self-start">
+                    + 新增任務
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -464,185 +501,6 @@ function DutyTaskSection({
           {!readOnly && (
             <button
               onClick={addDuty}
-              className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium self-start"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              {addLabel}
-            </button>
-          )}
-        </div>
-      </CardBody>
-    </Card>
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/*  Task Breakdown                                                     */
-/* ------------------------------------------------------------------ */
-
-interface BreakdownItem {
-  duty_ref: string
-  task_name: string
-  steps: string[]
-}
-
-function TaskBreakdownSection({
-  label,
-  description,
-  fieldDefs,
-  addLabel,
-  valueEntry,
-  companyId,
-  readOnly,
-}: {
-  label: string
-  description: string | null
-  fieldDefs: FieldDef[]
-  addLabel: string
-  valueEntry?: { valueId: string; value: unknown }
-  companyId: string
-  readOnly: boolean
-}) {
-  const initial = (Array.isArray(valueEntry?.value) ? valueEntry!.value : [{ duty_ref: '', task_name: '', steps: [''] }]) as BreakdownItem[]
-  const [items, setItems] = useState<BreakdownItem[]>(initial)
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const stepsFieldDef = fieldDefs.find((f) => f.key === 'steps')
-
-  const doSave = useCallback(
-    (newItems: BreakdownItem[]) => {
-      if (!valueEntry?.valueId || readOnly) return
-      if (saveTimer.current) clearTimeout(saveTimer.current)
-      saveTimer.current = setTimeout(async () => {
-        await updateFieldValue(valueEntry.valueId, { v: newItems }, companyId)
-      }, 600)
-    },
-    [valueEntry?.valueId, companyId, readOnly]
-  )
-
-  function updateItem(index: number, newItem: BreakdownItem) {
-    const next = [...items]
-    next[index] = newItem
-    setItems(next)
-    doSave(next)
-  }
-
-  function addItem() {
-    const next = [...items, { duty_ref: '', task_name: '', steps: [''] }]
-    setItems(next)
-    doSave(next)
-  }
-
-  function removeItem(index: number) {
-    if (items.length <= 1) return
-    const next = items.filter((_, i) => i !== index)
-    setItems(next)
-    doSave(next)
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <h3 className="font-semibold text-gray-900">{label}</h3>
-        {description && <p className="text-xs text-gray-500 mt-0.5">{description}</p>}
-      </CardHeader>
-      <CardBody>
-        <div className="flex flex-col gap-6">
-          {items.map((item, idx) => (
-            <div key={idx} className="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-blue-700">任務分析 #{idx + 1}</span>
-                {!readOnly && items.length > 1 && (
-                  <button onClick={() => removeItem(idx)} className="text-red-400 hover:text-red-600 text-xs">
-                    移除
-                  </button>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">
-                    職責 (Duty)<span className="text-red-500 ml-0.5">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={item.duty_ref}
-                    onChange={(e) => updateItem(idx, { ...item, duty_ref: e.target.value })}
-                    readOnly={readOnly}
-                    placeholder="對應的職責名稱"
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">
-                    任務名稱<span className="text-red-500 ml-0.5">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={item.task_name}
-                    onChange={(e) => updateItem(idx, { ...item, task_name: e.target.value })}
-                    readOnly={readOnly}
-                    placeholder="任務名稱"
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              {/* Steps */}
-              <div className="ml-4">
-                <label className="text-sm font-medium text-gray-700 block mb-1">
-                  構成要素/步驟<span className="text-red-500 ml-0.5">*</span>
-                </label>
-                {stepsFieldDef?.help && (
-                  <p className="text-xs text-gray-400 mb-1">{stepsFieldDef.help}</p>
-                )}
-                <div className="flex flex-col gap-2">
-                  {item.steps.map((step, si) => (
-                    <div key={si} className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400 w-6 text-right">{si + 1}.</span>
-                      <input
-                        type="text"
-                        value={step}
-                        onChange={(e) => {
-                          const newSteps = [...item.steps]
-                          newSteps[si] = e.target.value
-                          updateItem(idx, { ...item, steps: newSteps })
-                        }}
-                        readOnly={readOnly}
-                        placeholder="執行步驟"
-                        className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500"
-                      />
-                      {!readOnly && item.steps.length > 1 && (
-                        <button
-                          onClick={() => {
-                            const newSteps = item.steps.filter((_, i) => i !== si)
-                            updateItem(idx, { ...item, steps: newSteps })
-                          }}
-                          className="text-red-400 hover:text-red-600 text-xs"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  {!readOnly && (
-                    <button
-                      onClick={() => updateItem(idx, { ...item, steps: [...item.steps, ''] })}
-                      className="text-blue-600 hover:text-blue-800 text-xs self-start ml-8"
-                    >
-                      + 新增步驟
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {!readOnly && (
-            <button
-              onClick={addItem}
               className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium self-start"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
