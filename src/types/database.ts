@@ -629,6 +629,28 @@ export type Database = {
         }
         Relationships: []
       }
+      competency_form_reviews: {
+        Row: {
+          id: string
+          entry_id: string
+          reviewer_id: string
+          comment: string
+          action: 'approved' | 'needs_revision'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          entry_id: string
+          reviewer_id: string
+          comment?: string
+          action: 'approved' | 'needs_revision'
+        }
+        Update: {
+          comment?: string
+          action?: 'approved' | 'needs_revision'
+        }
+        Relationships: []
+      }
       competency_form_entry_values: {
         Row: {
           id: string
