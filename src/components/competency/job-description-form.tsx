@@ -45,11 +45,15 @@ interface Props {
 
 interface TdrTask {
   task_name: string
-  steps: string[]
-  kpi: string[]
-  output_indicators: string[]  // 工作產出行為指標
+  work_output: string[]        // 工作產出
+  behavior_indicators: string[] // 行為指標
+  competency_level: string     // 職能級別 (1-7)
   knowledge: string[]          // K = Knowledge 知識
   skills: string[]             // S = Skills 技能
+  // legacy fields (preserved for backward compat)
+  steps?: string[]
+  kpi?: string[]
+  output_indicators?: string[]
 }
 
 interface TdrDuty {
@@ -386,8 +390,10 @@ function JdPurposeSection({
 /* ------------------------------------------------------------------ */
 
 function emptyTask(): TdrTask {
-  return { task_name: '', steps: [], kpi: [''], output_indicators: [''], knowledge: [''], skills: [''] }
+  return { task_name: '', work_output: [''], behavior_indicators: [''], competency_level: '', knowledge: [''], skills: [''] }
 }
+
+const COMPETENCY_LEVELS = ['', '1', '2', '3', '4', '5', '6', '7'] as const
 
 function emptyDuty(): TdrDuty {
   return { duty_name: '', duty_percentage: '', tasks: [emptyTask()] }
@@ -401,17 +407,14 @@ function migrateFromAnalysis(raw: unknown): TdrDuty[] | null {
     return arr.map((d: { duty_name?: string; tasks?: Array<{ task_name?: string; metrics?: Array<{ metric_name?: string; standard_value?: string }>; steps?: string[] }> }) => ({
       duty_name: d.duty_name ?? '',
       duty_percentage: '',
-      tasks: (d.tasks ?? []).map(t => {
-        const kpi = (t.metrics ?? []).map(m => m.metric_name && m.standard_value ? `${m.metric_name}：${m.standard_value}` : m.metric_name || '').filter(Boolean)
-        return {
-          task_name: t.task_name ?? '',
-          steps: t.steps ?? [],
-          kpi: kpi.length > 0 ? kpi : [''],
-          output_indicators: [''],
-          knowledge: [''],
-          skills: [''],
-        }
-      }),
+      tasks: (d.tasks ?? []).map(t => ({
+        task_name: t.task_name ?? '',
+        work_output: [''],
+        behavior_indicators: (t.metrics ?? []).map(m => m.metric_name && m.standard_value ? `${m.metric_name}：${m.standard_value}` : m.metric_name || '').filter(Boolean).concat(['']).slice(0, Math.max((t.metrics ?? []).length, 1)),
+        competency_level: '',
+        knowledge: [''],
+        skills: [''],
+      })),
     }))
   } catch { return null }
 }
@@ -434,16 +437,16 @@ function JdTdrSection({
   const linkedTdr = !hasExistingData && linkedAnalysisData?._analysis_tdr
     ? migrateFromAnalysis(linkedAnalysisData._analysis_tdr)
     : null
-  // Ensure existing data has new fields
+  // Ensure existing data has new fields (migrate from old format)
   const migrateExisting = (duties: TdrDuty[]) => duties.map(d => ({
     ...d,
     tasks: d.tasks.map(t => ({
       ...t,
-      output_indicators: t.output_indicators ?? [''],
+      work_output: t.work_output ?? [''],
+      behavior_indicators: t.behavior_indicators ?? t.output_indicators ?? t.kpi ?? [''],
+      competency_level: t.competency_level ?? '',
       knowledge: t.knowledge ?? [''],
       skills: t.skills ?? [''],
-      steps: t.steps ?? [],
-      kpi: t.kpi ?? [''],
     })),
   }))
   const initial = hasExistingData
@@ -506,7 +509,7 @@ function JdTdrSection({
     update(next)
   }
 
-  type ListKey = 'steps' | 'kpi' | 'output_indicators' | 'knowledge' | 'skills'
+  type ListKey = 'work_output' | 'behavior_indicators' | 'knowledge' | 'skills'
   function updateListItem(di: number, ti: number, listKey: ListKey, si: number, val: string) {
     const next = [...duties]
     const tasks = [...next[di].tasks]
@@ -606,92 +609,58 @@ function JdTdrSection({
                     </div>
 
                     <div className="ml-4 flex flex-col gap-3">
-                      {/* Steps */}
+                      {/* 工作產出 */}
                       <div>
-                        <label className="text-xs font-medium text-gray-600 block mb-1">執行步驟</label>
+                        <label className="text-xs font-medium text-blue-700 block mb-1">工作產出</label>
                         <div className="flex flex-col gap-1.5">
-                          {task.steps.map((step, si) => (
-                            <div key={si} className="flex items-center gap-2">
-                              <span className="text-xs text-gray-400 w-5 text-right">{si + 1}.</span>
-                              <input
-                                type="text"
-                                value={step}
-                                onChange={(e) => updateListItem(di, ti, 'steps', si, e.target.value)}
-                                readOnly={readOnly}
-                                placeholder="執行步驟"
-                                className="flex-1 text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500 bg-white"
-                              />
-                              {!readOnly && task.steps.length > 1 && (
-                                <button
-                                  onClick={() => removeListItem(di, ti, 'steps', si)}
-                                  className="text-red-400 hover:text-red-600 text-xs"
-                                >
-                                  ✕
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                          {!readOnly && (
-                            <button
-                              onClick={() => addListItem(di, ti, 'steps')}
-                              className="text-blue-600 hover:text-blue-800 text-xs self-start ml-7"
-                            >
-                              + 新增步驟
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* KPI / 衡量標準 */}
-                      <div>
-                        <label className="text-xs font-medium text-green-700 block mb-1">衡量標準 (KPI)</label>
-                        <div className="flex flex-col gap-1.5">
-                          {task.kpi.map((k, ki) => (
-                            <div key={ki} className="flex items-center gap-2">
-                              <span className="text-xs text-green-500 w-5 text-right">{ki + 1}.</span>
-                              <input
-                                type="text"
-                                value={k}
-                                onChange={(e) => updateListItem(di, ti, 'kpi', ki, e.target.value)}
-                                readOnly={readOnly}
-                                placeholder="衡量標準 KPI"
-                                className="flex-1 text-sm border border-green-200 rounded px-2 py-1 focus:outline-none focus:border-green-500 bg-white"
-                              />
-                              {!readOnly && task.kpi.length > 1 && (
-                                <button onClick={() => removeListItem(di, ti, 'kpi', ki)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
-                              )}
-                            </div>
-                          ))}
-                          {!readOnly && (
-                            <button onClick={() => addListItem(di, ti, 'kpi')} className="text-green-600 hover:text-green-800 text-xs self-start ml-7">+ 新增 KPI</button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* 工作產出行為指標 */}
-                      <div>
-                        <label className="text-xs font-medium text-orange-700 block mb-1">工作產出行為指標</label>
-                        <div className="flex flex-col gap-1.5">
-                          {task.output_indicators.map((item, oi) => (
+                          {task.work_output.map((item, oi) => (
                             <div key={oi} className="flex items-center gap-2">
-                              <span className="text-xs text-orange-500 w-5 text-right">{oi + 1}.</span>
-                              <input
-                                type="text"
-                                value={item}
-                                onChange={(e) => updateListItem(di, ti, 'output_indicators', oi, e.target.value)}
-                                readOnly={readOnly}
-                                placeholder="描述該任務的具體產出或行為表現"
-                                className="flex-1 text-sm border border-orange-200 rounded px-2 py-1 focus:outline-none focus:border-orange-500 bg-white"
-                              />
-                              {!readOnly && task.output_indicators.length > 1 && (
-                                <button onClick={() => removeListItem(di, ti, 'output_indicators', oi)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
+                              <span className="text-xs text-blue-400 w-5 text-right">{oi + 1}.</span>
+                              <input type="text" value={item} onChange={(e) => updateListItem(di, ti, 'work_output', oi, e.target.value)}
+                                readOnly={readOnly} placeholder="例：業務發展規劃書、績效考核表"
+                                className="flex-1 text-sm border border-blue-200 rounded px-2 py-1 focus:outline-none focus:border-blue-500 bg-white" />
+                              {!readOnly && task.work_output.length > 1 && (
+                                <button onClick={() => removeListItem(di, ti, 'work_output', oi)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
                               )}
                             </div>
                           ))}
                           {!readOnly && (
-                            <button onClick={() => addListItem(di, ti, 'output_indicators')} className="text-orange-600 hover:text-orange-800 text-xs self-start ml-7">+ 新增指標</button>
+                            <button onClick={() => addListItem(di, ti, 'work_output')} className="text-blue-600 hover:text-blue-800 text-xs self-start ml-7">+ 新增產出</button>
                           )}
                         </div>
+                      </div>
+
+                      {/* 行為指標 */}
+                      <div>
+                        <label className="text-xs font-medium text-green-700 block mb-1">行為指標</label>
+                        <div className="flex flex-col gap-1.5">
+                          {task.behavior_indicators.map((item, bi) => (
+                            <div key={bi} className="flex items-center gap-2">
+                              <span className="text-xs text-green-500 w-5 text-right">{bi + 1}.</span>
+                              <input type="text" value={item} onChange={(e) => updateListItem(di, ti, 'behavior_indicators', bi, e.target.value)}
+                                readOnly={readOnly} placeholder="例：提升信用卡主要部門營業情況或轉投資事業投資收益"
+                                className="flex-1 text-sm border border-green-200 rounded px-2 py-1 focus:outline-none focus:border-green-500 bg-white" />
+                              {!readOnly && task.behavior_indicators.length > 1 && (
+                                <button onClick={() => removeListItem(di, ti, 'behavior_indicators', bi)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
+                              )}
+                            </div>
+                          ))}
+                          {!readOnly && (
+                            <button onClick={() => addListItem(di, ti, 'behavior_indicators')} className="text-green-600 hover:text-green-800 text-xs self-start ml-7">+ 新增指標</button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 職能級別 */}
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 block mb-1">職能級別</label>
+                        <select value={task.competency_level} onChange={(e) => updateTask(di, ti, { competency_level: e.target.value })}
+                          disabled={readOnly}
+                          className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500 bg-white">
+                          {COMPETENCY_LEVELS.map((lv) => (
+                            <option key={lv} value={lv}>{lv || '請選擇...'}</option>
+                          ))}
+                        </select>
                       </div>
 
                       {/* K = Knowledge 知識 */}
@@ -701,14 +670,9 @@ function JdTdrSection({
                           {task.knowledge.map((item, ki) => (
                             <div key={ki} className="flex items-center gap-2">
                               <span className="text-xs text-purple-500 w-5 text-right">{ki + 1}.</span>
-                              <input
-                                type="text"
-                                value={item}
-                                onChange={(e) => updateListItem(di, ti, 'knowledge', ki, e.target.value)}
-                                readOnly={readOnly}
-                                placeholder="執行此任務需具備的知識"
-                                className="flex-1 text-sm border border-purple-200 rounded px-2 py-1 focus:outline-none focus:border-purple-500 bg-white"
-                              />
+                              <input type="text" value={item} onChange={(e) => updateListItem(di, ti, 'knowledge', ki, e.target.value)}
+                                readOnly={readOnly} placeholder="例：會計、財務、金融市場"
+                                className="flex-1 text-sm border border-purple-200 rounded px-2 py-1 focus:outline-none focus:border-purple-500 bg-white" />
                               {!readOnly && task.knowledge.length > 1 && (
                                 <button onClick={() => removeListItem(di, ti, 'knowledge', ki)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
                               )}
@@ -727,14 +691,9 @@ function JdTdrSection({
                           {task.skills.map((item, si) => (
                             <div key={si} className="flex items-center gap-2">
                               <span className="text-xs text-teal-500 w-5 text-right">{si + 1}.</span>
-                              <input
-                                type="text"
-                                value={item}
-                                onChange={(e) => updateListItem(di, ti, 'skills', si, e.target.value)}
-                                readOnly={readOnly}
-                                placeholder="執行此任務需具備的技能"
-                                className="flex-1 text-sm border border-teal-200 rounded px-2 py-1 focus:outline-none focus:border-teal-500 bg-white"
-                              />
+                              <input type="text" value={item} onChange={(e) => updateListItem(di, ti, 'skills', si, e.target.value)}
+                                readOnly={readOnly} placeholder="例：人脈拓展、價值判斷、分析與解讀能力"
+                                className="flex-1 text-sm border border-teal-200 rounded px-2 py-1 focus:outline-none focus:border-teal-500 bg-white" />
                               {!readOnly && task.skills.length > 1 && (
                                 <button onClick={() => removeListItem(di, ti, 'skills', si)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
                               )}
