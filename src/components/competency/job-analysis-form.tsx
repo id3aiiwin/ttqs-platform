@@ -272,9 +272,12 @@ function BasicInfoSection({
         {description && <p className="text-xs text-gray-500 mt-0.5">{description}</p>}
       </CardHeader>
       <CardBody>
-        <div className="grid grid-cols-2 gap-4">
-          {fieldDefs.map((fd) => (
-            <div key={fd.key} className={(fd as FieldDef & { full_width?: boolean }).full_width ? 'col-span-2' : ''}>
+        <div className="grid grid-cols-3 gap-4">
+          {fieldDefs.map((fd) => {
+            const ext = fd as FieldDef & { full_width?: boolean; col_span?: number }
+            const span = ext.full_width ? 'col-span-3' : ext.col_span === 2 ? 'col-span-2' : ''
+            return (
+            <div key={fd.key} className={span}>
               <label className="text-sm font-medium text-gray-700 block mb-1">
                 {fd.label}
                 {fd.required && <span className="text-red-500 ml-0.5">*</span>}
@@ -299,7 +302,7 @@ function BasicInfoSection({
                 />
               )}
             </div>
-          ))}
+          )})}
         </div>
         {saving && <p className="text-xs text-blue-500 mt-2">儲存中...</p>}
       </CardBody>
