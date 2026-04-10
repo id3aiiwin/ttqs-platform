@@ -127,21 +127,11 @@ export function JobDescriptionForm({ entryId, companyId, employeeName, linkedAna
         />
       )}
 
-      {/* Section 4: SKA */}
+      {/* Section 4: SKA (選填) */}
       {skaField && (
         <JdSkaSection
           field={skaField}
           valueEntry={valuesMap.current[skaField.field_name]}
-          companyId={companyId}
-          readOnly={readOnly}
-        />
-      )}
-
-      {/* Section 5: Environment */}
-      {envField && (
-        <JdEnvironmentSection
-          field={envField}
-          valueEntry={valuesMap.current[envField.field_name]}
           companyId={companyId}
           readOnly={readOnly}
         />
@@ -763,7 +753,7 @@ function JdSkaSection({
   return (
     <Card>
       <CardHeader>
-        <h3 className="font-semibold text-gray-900">{label}</h3>
+        <h3 className="font-semibold text-gray-900">{label} <span className="text-xs font-normal text-gray-400">（選填）</span></h3>
         {field.description && <p className="text-xs text-gray-500 mt-0.5">{field.description}</p>}
       </CardHeader>
       <CardBody>
@@ -787,60 +777,3 @@ function JdSkaSection({
   )
 }
 
-/* ------------------------------------------------------------------ */
-/*  Section 5: Environment                                             */
-/* ------------------------------------------------------------------ */
-
-const JD_ENV_FIELDS = [
-  { key: 'tools_equipment', label: '使用工具/設備' },
-  { key: 'work_conditions', label: '工作環境/條件' },
-]
-
-function JdEnvironmentSection({
-  field,
-  valueEntry,
-  companyId,
-  readOnly,
-}: {
-  field: TemplateField
-  valueEntry?: { valueId: string; value: unknown }
-  companyId: string
-  readOnly: boolean
-}) {
-  const label = field.display_name || field.standard_name || '工作環境與資源'
-  const initial = (valueEntry?.value ?? {}) as Record<string, string>
-  const [data, setData] = useState<Record<string, string>>(initial)
-  const { doSave, saving } = useDebouncedSave(valueEntry?.valueId, companyId, readOnly)
-
-  function handleChange(key: string, val: string) {
-    const next = { ...data, [key]: val }
-    setData(next)
-    doSave(next)
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <h3 className="font-semibold text-gray-900">{label}</h3>
-        {field.description && <p className="text-xs text-gray-500 mt-0.5">{field.description}</p>}
-      </CardHeader>
-      <CardBody>
-        <div className="flex flex-col gap-4">
-          {JD_ENV_FIELDS.map((fd) => (
-            <div key={fd.key}>
-              <label className="text-sm font-medium text-gray-700 block mb-1">{fd.label}</label>
-              <textarea
-                value={data[fd.key] ?? ''}
-                onChange={(e) => handleChange(fd.key, e.target.value)}
-                readOnly={readOnly}
-                rows={3}
-                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 resize-y"
-              />
-            </div>
-          ))}
-        </div>
-        {saving && <p className="text-xs text-blue-500 mt-2">儲存中...</p>}
-      </CardBody>
-    </Card>
-  )
-}
