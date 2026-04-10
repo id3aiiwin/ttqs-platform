@@ -137,12 +137,18 @@ export function JobAnalysisForm({ entryId, companyId, employeeName, fields, valu
         </>
       )}
 
-      {/* Submit */}
+      {/* Save + Submit */}
       {!readOnly && (
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-          <Button variant="primary" loading={submitPending} onClick={handleSubmit}>
-            送出審閱
-          </Button>
+        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+          <p className="text-xs text-gray-400">編輯時自動儲存</p>
+          <div className="flex gap-3">
+            <Button variant="ghost" onClick={() => router.refresh()}>
+              已儲存 ✓
+            </Button>
+            <Button variant="primary" loading={submitPending} onClick={handleSubmit}>
+              送出審閱
+            </Button>
+          </div>
         </div>
       )}
     </div>

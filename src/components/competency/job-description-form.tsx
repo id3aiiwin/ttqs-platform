@@ -31,6 +31,8 @@ interface FieldValue {
 interface Props {
   entryId: string
   companyId: string
+  employeeName?: string
+  linkedAnalysisData?: Record<string, string> | null
   fields: TemplateField[]
   values: FieldValue[]
   isConsultant: boolean
@@ -68,7 +70,7 @@ function extractValue(raw: unknown): unknown {
 /*  Main component                                                     */
 /* ------------------------------------------------------------------ */
 
-export function JobDescriptionForm({ entryId, companyId, fields, values, isConsultant, readOnly = false }: Props) {
+export function JobDescriptionForm({ entryId, companyId, employeeName, linkedAnalysisData, fields, values, isConsultant, readOnly = false }: Props) {
   const router = useRouter()
   const [submitPending, startSubmitTransition] = useTransition()
 
@@ -94,23 +96,16 @@ export function JobDescriptionForm({ entryId, companyId, fields, values, isConsu
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Section 1: Basic Info */}
+      {/* Section 1: Basic Info (includes 職位目的) */}
       {basicInfoField && (
         <JdBasicInfoSection
           field={basicInfoField}
           valueEntry={valuesMap.current[basicInfoField.field_name]}
+          purposeValueEntry={purposeField ? valuesMap.current[purposeField.field_name] : undefined}
           companyId={companyId}
           readOnly={readOnly}
-        />
-      )}
-
-      {/* Section 2: Purpose */}
-      {purposeField && (
-        <JdPurposeSection
-          field={purposeField}
-          valueEntry={valuesMap.current[purposeField.field_name]}
-          companyId={companyId}
-          readOnly={readOnly}
+          employeeName={employeeName}
+          linkedAnalysisData={linkedAnalysisData}
         />
       )}
 
@@ -144,12 +139,18 @@ export function JobDescriptionForm({ entryId, companyId, fields, values, isConsu
         />
       )}
 
-      {/* Submit */}
+      {/* Save + Submit */}
       {!readOnly && (
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-          <Button variant="primary" loading={submitPending} onClick={handleSubmit}>
-            送出審閱
-          </Button>
+        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+          <p className="text-xs text-gray-400">編輯時自動儲存</p>
+          <div className="flex gap-3">
+            <Button variant="ghost" onClick={() => router.refresh()}>
+              已儲存 ✓
+            </Button>
+            <Button variant="primary" loading={submitPending} onClick={handleSubmit}>
+              送出審閱
+            </Button>
+          </div>
         </div>
       )}
     </div>
@@ -185,38 +186,87 @@ function useDebouncedSave(
 }
 
 /* ------------------------------------------------------------------ */
-/*  Section 1: Basic Info                                              */
+/*  Section 1: Basic Info (3-column grid + 職位目的)                    */
 /* ------------------------------------------------------------------ */
 
-const JD_BASIC_FIELDS = [
-  { key: 'job_title', label: '工作職稱', type: 'text', required: true },
-  { key: 'department', label: '所屬部門', type: 'text', required: true },
-  { key: 'supervisor', label: '直屬主管', type: 'text' },
-  { key: 'salary_grade', label: '薪資/職等', type: 'text' },
-  { key: 'jd_number', label: '工作說明書編號', type: 'text' },
-  { key: 'date', label: '日期', type: 'date' },
-]
+// 從工作分析連動的欄位 mapping: jd key -> analysis key
+const LINKED_FIELD_MAP: Record<string, string> = {
+  job_title: 'job_title',
+  department: 'department',
+  supervisor: 'supervisor',
+  date: 'date',
+}
 
 function JdBasicInfoSection({
   field,
   valueEntry,
+  purposeValueEntry,
   companyId,
   readOnly,
+  employeeName,
+  linkedAnalysisData,
 }: {
   field: TemplateField
   valueEntry?: { valueId: string; value: unknown }
+  purposeValueEntry?: { valueId: string; value: unknown }
   companyId: string
   readOnly: boolean
+  employeeName?: string
+  linkedAnalysisData?: Record<string, string> | null
 }) {
   const label = field.display_name || field.standard_name || '基本資料'
-  const initial = (valueEntry?.value ?? {}) as Record<string, string>
+
+  // 初始化：合併已存的值 + 從工作分析連動的值
+  const raw = (valueEntry?.value ?? {}) as Record<string, string>
+  const initial = { ...raw }
+  // 從工作分析帶入尚未填寫的欄位
+  if (linkedAnalysisData) {
+    Object.entries(LINKED_FIELD_MAP).forEach(([jdKey, analysisKey]) => {
+      if (!initial[jdKey] && linkedAnalysisData[analysisKey]) {
+        initial[jdKey] = linkedAnalysisData[analysisKey]
+      }
+    })
+  }
+  // 自動帶入填寫人
+  if (employeeName && !initial.analyst) {
+    initial.analyst = employeeName
+  }
+  // 帶入職位目的
+  const rawPurpose = (purposeValueEntry?.value as string) ?? ''
+  if (!initial.job_purpose && linkedAnalysisData?.job_purpose) {
+    initial.job_purpose = linkedAnalysisData.job_purpose
+  }
+  if (!initial.job_purpose && rawPurpose) {
+    initial.job_purpose = rawPurpose
+  }
+
   const [data, setData] = useState<Record<string, string>>(initial)
   const { doSave, saving } = useDebouncedSave(valueEntry?.valueId, companyId, readOnly)
+  const { doSave: doSavePurpose } = useDebouncedSave(purposeValueEntry?.valueId, companyId, readOnly)
+
+  // 首次載入時，如果有連動帶入就存一次
+  const autoSaveRef = useRef(false)
+  if (!autoSaveRef.current && valueEntry?.valueId && !readOnly) {
+    const hasNewData = Object.keys(initial).some(k => initial[k] && !raw[k])
+    if (hasNewData) {
+      autoSaveRef.current = true
+      setTimeout(() => {
+        updateFieldValue(valueEntry.valueId, { v: initial }, companyId)
+        if (purposeValueEntry?.valueId && initial.job_purpose && !rawPurpose) {
+          updateFieldValue(purposeValueEntry.valueId, { v: initial.job_purpose }, companyId)
+        }
+      }, 100)
+    }
+  }
 
   function handleChange(key: string, val: string) {
     const next = { ...data, [key]: val }
     setData(next)
     doSave(next)
+    // 同步儲存 purpose 到獨立欄位
+    if (key === 'job_purpose' && purposeValueEntry?.valueId) {
+      doSavePurpose(val)
+    }
   }
 
   return (
@@ -224,25 +274,57 @@ function JdBasicInfoSection({
       <CardHeader>
         <h3 className="font-semibold text-gray-900">{label}</h3>
         {field.description && <p className="text-xs text-gray-500 mt-0.5">{field.description}</p>}
+        {linkedAnalysisData && (
+          <p className="text-xs text-blue-500 mt-1">部分欄位已從工作分析自動帶入</p>
+        )}
       </CardHeader>
       <CardBody>
-        <div className="grid grid-cols-2 gap-4">
-          {JD_BASIC_FIELDS.map((fd) => (
-            <div key={fd.key}>
-              <label className="text-sm font-medium text-gray-700 block mb-1">
-                {fd.label}
-                {fd.required && <span className="text-red-500 ml-0.5">*</span>}
-              </label>
-              <input
-                type={fd.type === 'date' ? 'date' : 'text'}
-                value={data[fd.key] ?? ''}
-                onChange={(e) => handleChange(fd.key, e.target.value)}
-                readOnly={readOnly}
-                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 disabled:bg-gray-50"
-              />
-            </div>
-          ))}
+        {/* Row 1: 工作職稱、填寫人、日期 */}
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">工作職稱<span className="text-red-500 ml-0.5">*</span></label>
+            <input type="text" value={data.job_title ?? ''} onChange={(e) => handleChange('job_title', e.target.value)}
+              readOnly={readOnly} className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500" />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">填寫人<span className="text-red-500 ml-0.5">*</span></label>
+            <input type="text" value={data.analyst ?? ''} onChange={(e) => handleChange('analyst', e.target.value)}
+              readOnly={readOnly} className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500" />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">日期<span className="text-red-500 ml-0.5">*</span></label>
+            <input type="date" value={data.date ?? ''} onChange={(e) => handleChange('date', e.target.value)}
+              readOnly={readOnly} className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500" />
+          </div>
         </div>
+
+        {/* Row 2: 部門、職務代理人、主管 */}
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">部門<span className="text-red-500 ml-0.5">*</span></label>
+            <input type="text" value={data.department ?? ''} onChange={(e) => handleChange('department', e.target.value)}
+              readOnly={readOnly} className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500" />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">職務代理人</label>
+            <input type="text" value={data.deputy ?? ''} onChange={(e) => handleChange('deputy', e.target.value)}
+              readOnly={readOnly} className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500" />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">主管</label>
+            <input type="text" value={data.supervisor ?? ''} onChange={(e) => handleChange('supervisor', e.target.value)}
+              readOnly={readOnly} className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500" />
+          </div>
+        </div>
+
+        {/* Row 3: 職位目的 */}
+        <div>
+          <label className="text-sm font-medium text-gray-700 block mb-1">職位目的<span className="text-red-500 ml-0.5">*</span></label>
+          <textarea value={data.job_purpose ?? ''} onChange={(e) => handleChange('job_purpose', e.target.value)}
+            readOnly={readOnly} rows={3} placeholder="請簡述此職位存在的主要目的與價值"
+            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 resize-y" />
+        </div>
+
         {saving && <p className="text-xs text-blue-500 mt-2">儲存中...</p>}
       </CardBody>
     </Card>

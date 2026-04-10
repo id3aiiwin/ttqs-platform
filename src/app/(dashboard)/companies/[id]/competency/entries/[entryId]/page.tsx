@@ -114,6 +114,38 @@ export default async function EntryDetailPage({
     valuesMap[key] = { valueId: v.id, value: v.value }
   })
 
+  // 工作說明書：連動工作分析的基本資料
+  let linkedAnalysisData: Record<string, string> | null = null
+  if (entry.form_type === 'job_description') {
+    const { data: analysisEntry } = await serviceClient
+      .from('competency_form_entries')
+      .select('id')
+      .eq('employee_id', entry.employee_id)
+      .eq('company_id', companyId)
+      .eq('form_type', 'job_analysis')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (analysisEntry) {
+      const { data: analysisValues } = await serviceClient
+        .from('competency_form_entry_values')
+        .select('field_name, value')
+        .eq('entry_id', analysisEntry.id)
+        .in('field_name', ['basic_info', 'job_analysis_table'])
+      const basicVal = analysisValues?.find(v => v.field_name === 'basic_info')
+      const tableVal = analysisValues?.find(v => v.field_name === 'job_analysis_table')
+      const raw = basicVal?.value as { v?: Record<string, string> } | null
+      linkedAnalysisData = raw?.v ?? null
+      // 把工作分析的 TDR 也帶過去
+      if (tableVal) {
+        const tdrRaw = tableVal.value as { v?: unknown } | null
+        if (tdrRaw?.v) {
+          linkedAnalysisData = { ...(linkedAnalysisData ?? {}), _analysis_tdr: JSON.stringify(tdrRaw.v) }
+        }
+      }
+    }
+  }
+
   const formTitle = FORM_TYPE_LABELS[entry.form_type] ?? entry.form_type
   const status = ENTRY_STATUS[entry.status] ?? ENTRY_STATUS.draft
 
@@ -164,6 +196,8 @@ export default async function EntryDetailPage({
             <JobDescriptionForm
               entryId={entryId}
               companyId={companyId}
+              employeeName={employee?.full_name || employee?.email || ''}
+              linkedAnalysisData={linkedAnalysisData}
               fields={(templateFields ?? []).map((f) => ({
                 ...f,
                 description: (f.options as Record<string, unknown> | null)?.description as string | null ?? null,
