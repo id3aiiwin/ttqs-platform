@@ -651,18 +651,6 @@ function JdTdrSection({
                         </div>
                       </div>
 
-                      {/* 職能級別 */}
-                      <div>
-                        <label className="text-xs font-medium text-gray-600 block mb-1">職能級別</label>
-                        <select value={task.competency_level} onChange={(e) => updateTask(di, ti, { competency_level: e.target.value })}
-                          disabled={readOnly}
-                          className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500 bg-white">
-                          {COMPETENCY_LEVELS.map((lv) => (
-                            <option key={lv} value={lv}>{lv || '請選擇...'}</option>
-                          ))}
-                        </select>
-                      </div>
-
                       {/* K = Knowledge 知識 */}
                       <div>
                         <label className="text-xs font-medium text-purple-700 block mb-1">K — Knowledge 知識</label>
