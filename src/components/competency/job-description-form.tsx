@@ -116,6 +116,7 @@ export function JobDescriptionForm({ entryId, companyId, employeeName, linkedAna
           valueEntry={valuesMap.current[tdrField.field_name]}
           companyId={companyId}
           readOnly={readOnly}
+          linkedAnalysisData={linkedAnalysisData}
         />
       )}
 
@@ -389,20 +390,54 @@ function emptyDuty(): TdrDuty {
   return { duty_name: '', duty_percentage: '', tasks: [emptyTask()] }
 }
 
+function migrateFromAnalysis(raw: unknown): TdrDuty[] | null {
+  if (!raw) return null
+  try {
+    const arr = typeof raw === 'string' ? JSON.parse(raw) : raw
+    if (!Array.isArray(arr) || arr.length === 0) return null
+    return arr.map((d: { duty_name?: string; tasks?: Array<{ task_name?: string; metrics?: Array<{ metric_name?: string; standard_value?: string }>; steps?: string[] }> }) => ({
+      duty_name: d.duty_name ?? '',
+      duty_percentage: '',
+      tasks: (d.tasks ?? []).map(t => ({
+        task_name: t.task_name ?? '',
+        steps: t.steps ?? [],
+        kpi: (t.metrics ?? []).map(m => m.metric_name && m.standard_value ? `${m.metric_name}：${m.standard_value}` : m.metric_name || '').filter(Boolean),
+      })).map(t => ({ ...t, kpi: t.kpi.length > 0 ? t.kpi : [''] })),
+    }))
+  } catch { return null }
+}
+
 function JdTdrSection({
   field,
   valueEntry,
   companyId,
   readOnly,
+  linkedAnalysisData,
 }: {
   field: TemplateField
   valueEntry?: { valueId: string; value: unknown }
   companyId: string
   readOnly: boolean
+  linkedAnalysisData?: Record<string, string> | null
 }) {
   const label = field.display_name || field.standard_name || '工作職掌與任務 TDR'
-  const initial = (Array.isArray(valueEntry?.value) ? valueEntry!.value : [emptyDuty()]) as TdrDuty[]
+  const hasExistingData = Array.isArray(valueEntry?.value) && (valueEntry!.value as TdrDuty[]).length > 0
+  const linkedTdr = !hasExistingData && linkedAnalysisData?._analysis_tdr
+    ? migrateFromAnalysis(linkedAnalysisData._analysis_tdr)
+    : null
+  const initial = hasExistingData
+    ? valueEntry!.value as TdrDuty[]
+    : linkedTdr ?? [emptyDuty()]
   const [duties, setDuties] = useState<TdrDuty[]>(initial)
+
+  // 首次從工作分析帶入時自動存檔
+  const autoSaveRef = useRef(false)
+  if (!autoSaveRef.current && linkedTdr && valueEntry?.valueId && !readOnly) {
+    autoSaveRef.current = true
+    setTimeout(() => {
+      updateFieldValue(valueEntry.valueId, { v: linkedTdr }, companyId)
+    }, 200)
+  }
   const { doSave, saving } = useDebouncedSave(valueEntry?.valueId, companyId, readOnly)
 
   const DUTY_LABELS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -491,14 +526,14 @@ function JdTdrSection({
               {/* Duty header */}
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-sm font-bold text-blue-700 whitespace-nowrap">
-                  核心職責 {DUTY_LABELS[di] ?? di + 1}:
+                  職能 {DUTY_LABELS[di] ?? di + 1}:
                 </span>
                 <input
                   type="text"
                   value={duty.duty_name}
                   onChange={(e) => updateDuty(di, { duty_name: e.target.value })}
                   readOnly={readOnly}
-                  placeholder="核心職責名稱"
+                  placeholder="職能名稱"
                   className="flex-1 text-sm font-medium border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
                 />
                 <span className="text-sm text-gray-500 whitespace-nowrap">佔比</span>
