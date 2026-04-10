@@ -274,19 +274,30 @@ function BasicInfoSection({
       <CardBody>
         <div className="grid grid-cols-2 gap-4">
           {fieldDefs.map((fd) => (
-            <div key={fd.key}>
+            <div key={fd.key} className={(fd as FieldDef & { full_width?: boolean }).full_width ? 'col-span-2' : ''}>
               <label className="text-sm font-medium text-gray-700 block mb-1">
                 {fd.label}
                 {fd.required && <span className="text-red-500 ml-0.5">*</span>}
               </label>
-              <input
-                type={fd.type === 'date' ? 'date' : 'text'}
-                value={data[fd.key] ?? ''}
-                onChange={(e) => handleChange(fd.key, e.target.value)}
-                readOnly={readOnly}
-                placeholder={fd.placeholder}
-                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 disabled:bg-gray-50"
-              />
+              {fd.type === 'textarea' ? (
+                <textarea
+                  value={data[fd.key] ?? ''}
+                  onChange={(e) => handleChange(fd.key, e.target.value)}
+                  readOnly={readOnly}
+                  placeholder={fd.placeholder}
+                  rows={3}
+                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 disabled:bg-gray-50 resize-y"
+                />
+              ) : (
+                <input
+                  type={fd.type === 'date' ? 'date' : 'text'}
+                  value={data[fd.key] ?? ''}
+                  onChange={(e) => handleChange(fd.key, e.target.value)}
+                  readOnly={readOnly}
+                  placeholder={fd.placeholder}
+                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 disabled:bg-gray-50"
+                />
+              )}
             </div>
           ))}
         </div>
@@ -300,8 +311,15 @@ function BasicInfoSection({
 /*  Job Analysis Table (unified: Duty → Task → Steps)                  */
 /* ------------------------------------------------------------------ */
 
+interface MetricItem {
+  metric_name: string   // 衡量指標 e.g. 準時率
+  standard_value: string // 標準值 e.g. ≥95%
+}
+
 interface TaskItem {
   task_name: string
+  metrics: MetricItem[]
+  frequency?: string    // 評估頻率: 每日/每週/每月
   steps: string[]
 }
 
@@ -310,23 +328,34 @@ interface DutyWithTasks {
   tasks: TaskItem[]
 }
 
+const FREQUENCY_OPTIONS = ['', '每日', '每週', '每月', '每季', '每年'] as const
+
 function migrateToUnifiedFormat(raw: unknown): DutyWithTasks[] {
   if (!Array.isArray(raw) || raw.length === 0) {
-    return [{ duty_name: '', tasks: [{ task_name: '', steps: [''] }] }]
+    return [{ duty_name: '', tasks: [{ task_name: '', metrics: [{ metric_name: '', standard_value: '' }], frequency: '', steps: [] }] }]
   }
   // Already new format
   const first = raw[0] as Record<string, unknown>
   if (first.tasks && Array.isArray(first.tasks) && first.tasks.length > 0 && typeof first.tasks[0] === 'object') {
-    return raw as DutyWithTasks[]
+    // Ensure metrics field exists on each task (migrate from old format without metrics)
+    return (raw as DutyWithTasks[]).map(d => ({
+      ...d,
+      tasks: d.tasks.map(t => ({
+        ...t,
+        metrics: t.metrics ?? [{ metric_name: '', standard_value: '' }],
+        frequency: t.frequency ?? '',
+        steps: t.steps ?? [],
+      })),
+    }))
   }
   // Old duty_task_inventory format: { duty_name, tasks: string[] }
   if (first.duty_name && Array.isArray(first.tasks)) {
     return (raw as { duty_name: string; tasks: string[] }[]).map((d) => ({
       duty_name: d.duty_name,
-      tasks: d.tasks.map((t) => ({ task_name: t, steps: [''] })),
+      tasks: d.tasks.map((t) => ({ task_name: t, metrics: [{ metric_name: '', standard_value: '' }], frequency: '', steps: [] })),
     }))
   }
-  return [{ duty_name: '', tasks: [{ task_name: '', steps: [''] }] }]
+  return [{ duty_name: '', tasks: [{ task_name: '', metrics: [{ metric_name: '', standard_value: '' }], frequency: '', steps: [] }] }]
 }
 
 function JobAnalysisTableSection({
@@ -367,7 +396,7 @@ function JobAnalysisTableSection({
     const next = [...duties]; next[di] = { ...next[di], duty_name: name }; update(next)
   }
   function addDuty() {
-    update([...duties, { duty_name: '', tasks: [{ task_name: '', steps: [''] }] }])
+    update([...duties, { duty_name: '', tasks: [{ task_name: '', metrics: [{ metric_name: '', standard_value: '' }], frequency: '', steps: [] }] }])
   }
   function removeDuty(di: number) {
     if (duties.length <= 1) return; update(duties.filter((_, i) => i !== di))
@@ -376,7 +405,7 @@ function JobAnalysisTableSection({
     const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], task_name: name }; next[di] = { ...next[di], tasks }; update(next)
   }
   function addTask(di: number) {
-    const next = [...duties]; next[di] = { ...next[di], tasks: [...next[di].tasks, { task_name: '', steps: [''] }] }; update(next)
+    const next = [...duties]; next[di] = { ...next[di], tasks: [...next[di].tasks, { task_name: '', metrics: [{ metric_name: '', standard_value: '' }], frequency: '', steps: [] }] }; update(next)
   }
   function removeTask(di: number, ti: number) {
     if (duties[di].tasks.length <= 1) return
@@ -389,8 +418,20 @@ function JobAnalysisTableSection({
     const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], steps: [...tasks[ti].steps, ''] }; next[di] = { ...next[di], tasks }; update(next)
   }
   function removeStep(di: number, ti: number, si: number) {
-    if (duties[di].tasks[ti].steps.length <= 1) return
     const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], steps: tasks[ti].steps.filter((_, i) => i !== si) }; next[di] = { ...next[di], tasks }; update(next)
+  }
+  function updateMetric(di: number, ti: number, mi: number, key: 'metric_name' | 'standard_value', val: string) {
+    const next = [...duties]; const tasks = [...next[di].tasks]; const metrics = [...tasks[ti].metrics]; metrics[mi] = { ...metrics[mi], [key]: val }; tasks[ti] = { ...tasks[ti], metrics }; next[di] = { ...next[di], tasks }; update(next)
+  }
+  function addMetric(di: number, ti: number) {
+    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], metrics: [...tasks[ti].metrics, { metric_name: '', standard_value: '' }] }; next[di] = { ...next[di], tasks }; update(next)
+  }
+  function removeMetric(di: number, ti: number, mi: number) {
+    if (duties[di].tasks[ti].metrics.length <= 1) return
+    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], metrics: tasks[ti].metrics.filter((_, i) => i !== mi) }; next[di] = { ...next[di], tasks }; update(next)
+  }
+  function updateFrequency(di: number, ti: number, val: string) {
+    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], frequency: val }; next[di] = { ...next[di], tasks }; update(next)
   }
 
   return (
@@ -442,7 +483,7 @@ function JobAnalysisTableSection({
                     </div>
 
                     {/* Task name */}
-                    <div className="mb-2">
+                    <div className="mb-3">
                       <label className="text-xs font-medium text-gray-600 block mb-1">
                         任務 (Task)<span className="text-red-500 ml-0.5">*</span>
                       </label>
@@ -456,10 +497,66 @@ function JobAnalysisTableSection({
                       />
                     </div>
 
-                    {/* Steps */}
+                    {/* Metrics */}
+                    <div className="ml-4 mb-3">
+                      <label className="text-xs font-medium text-gray-600 block mb-1">
+                        衡量指標<span className="text-red-500 ml-0.5">*</span>
+                      </label>
+                      <p className="text-xs text-gray-400 mb-1.5">用來衡量該任務執行成效的關鍵指標與標準</p>
+                      <div className="flex flex-col gap-2">
+                        {task.metrics.map((metric, mi) => (
+                          <div key={mi} className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 w-5 text-right flex-shrink-0">{mi + 1}.</span>
+                            <input
+                              type="text"
+                              value={metric.metric_name}
+                              onChange={(e) => updateMetric(di, ti, mi, 'metric_name', e.target.value)}
+                              readOnly={readOnly}
+                              placeholder="指標名稱，例：準時率"
+                              className="flex-1 text-sm border border-gray-300 rounded px-2.5 py-1 focus:outline-none focus:border-blue-500"
+                            />
+                            <input
+                              type="text"
+                              value={metric.standard_value}
+                              onChange={(e) => updateMetric(di, ti, mi, 'standard_value', e.target.value)}
+                              readOnly={readOnly}
+                              placeholder="標準值，例：≥95%"
+                              className="w-36 text-sm border border-gray-300 rounded px-2.5 py-1 focus:outline-none focus:border-blue-500"
+                            />
+                            {!readOnly && task.metrics.length > 1 && (
+                              <button onClick={() => removeMetric(di, ti, mi)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
+                            )}
+                          </div>
+                        ))}
+                        {!readOnly && (
+                          <button onClick={() => addMetric(di, ti)} className="text-blue-600 hover:text-blue-800 text-xs self-start ml-7">
+                            + 新增指標
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Frequency */}
+                    <div className="ml-4 mb-3">
+                      <label className="text-xs font-medium text-gray-600 block mb-1">
+                        評估頻率 <span className="text-xs font-normal text-gray-400">（選填）</span>
+                      </label>
+                      <select
+                        value={task.frequency ?? ''}
+                        onChange={(e) => updateFrequency(di, ti, e.target.value)}
+                        disabled={readOnly}
+                        className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500 bg-white"
+                      >
+                        {FREQUENCY_OPTIONS.map((opt) => (
+                          <option key={opt} value={opt}>{opt || '請選擇...'}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Steps (optional) */}
                     <div className="ml-4">
                       <label className="text-xs font-medium text-gray-600 block mb-1">
-                        構成要素／步驟<span className="text-red-500 ml-0.5">*</span>
+                        構成要素／步驟 <span className="text-xs font-normal text-gray-400">（選填）</span>
                       </label>
                       <p className="text-xs text-gray-400 mb-1">完成該任務必須依序執行的詳細動作</p>
                       <div className="flex flex-col gap-1.5">
@@ -474,7 +571,7 @@ function JobAnalysisTableSection({
                               placeholder={si === 0 ? '例：買材料' : si === 1 ? '例：看食譜或說明書' : '執行步驟'}
                               className="flex-1 text-sm border border-gray-300 rounded px-2.5 py-1 focus:outline-none focus:border-blue-500"
                             />
-                            {!readOnly && task.steps.length > 1 && (
+                            {!readOnly && (
                               <button onClick={() => removeStep(di, ti, si)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
                             )}
                           </div>
