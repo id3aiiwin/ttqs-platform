@@ -72,7 +72,7 @@ function ConsultantContent({ data, isAdmin }: { data: Record<string, unknown>; i
 
   const subTabs = [
     { id: 'overview', label: '總覽', count: null },
-    { id: 'people', label: '生命教練', count: allPeople.length },
+    { id: 'people', label: '生命教練', count: analysts.length },
     { id: 'instructors', label: '講師管理', count: instructors.length },
     { id: 'courses', label: '課程管理', count: allCourses.length },
     { id: 'review', label: '課程審核', count: pendingCourses.length },

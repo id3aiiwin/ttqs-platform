@@ -98,7 +98,7 @@ export async function PATCH(request: NextRequest) {
   const update: Record<string, unknown> = {}
   const allowedFields = ['full_name', 'phone', 'birthday', 'gender', 'company_id', 'job_title', 'r1_pattern', 'l2_pattern', 'customer_level', 'is_personal_client']
   for (const key of allowedFields) {
-    if (key in fields) update[key] = fields[key] ?? null
+    if (key in fields) update[key] = fields[key] || null
   }
 
   if (Object.keys(update).length === 0) return NextResponse.json({ error: '沒有要更新的欄位' }, { status: 400 })
