@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/database'
+import { toSessionCookie } from './cookie-utils'
 
 /** 一般 client：帶 user session，受 RLS 限制 */
 export async function createClient() {
@@ -19,7 +20,7 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, toSessionCookie(options))
             )
           } catch {
             // Server Component 中呼叫時忽略
