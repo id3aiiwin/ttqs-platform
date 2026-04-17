@@ -24,23 +24,29 @@ export default async function MeetingDetailPage({ params }: { params: Promise<{ 
   const { data: meeting } = await sc.from('meetings').select('*').eq('id', id).single()
   if (!meeting) notFound()
 
-  const { data: company } = await sc.from('companies').select('name').eq('id', meeting.company_id).single()
-  const { data: consultants } = await sc.from('profiles').select('id, full_name, email').eq('role', 'consultant' as never)
-  const { data: actionItems } = await sc.from('meeting_action_items').select('*').eq('meeting_id', id).order('created_at')
-
-  // 簽核資料
   const approvalId = (meeting as Record<string, unknown>).approval_id as string | null
-  let meetingApproval = null
-  let meetingApprovalSigs: { id: string; step_order: number; signer_role: string; signer_name: string | null; signature_url: string | null; status: string; comment: string | null; signed_at: string | null }[] = []
-  if (approvalId) {
-    const { data: a } = await sc.from('document_approvals').select('*').eq('id', approvalId).single()
-    meetingApproval = a
-    const { data: sigs } = await sc.from('document_approval_signatures').select('*').eq('approval_id', approvalId).order('step_order')
-    meetingApprovalSigs = sigs ?? []
-  }
 
-  // 簽核流程
-  const { data: approvalFlows } = await sc.from('approval_flows').select('id, name, is_default').eq('company_id', meeting.company_id)
+  const [
+    { data: company },
+    { data: consultants },
+    { data: actionItems },
+    approvalRes,
+    sigsRes,
+    { data: approvalFlows },
+  ] = await Promise.all([
+    sc.from('companies').select('name').eq('id', meeting.company_id).single(),
+    sc.from('profiles').select('id, full_name, email').eq('role', 'consultant' as never),
+    sc.from('meeting_action_items').select('*').eq('meeting_id', id).order('created_at'),
+    approvalId
+      ? sc.from('document_approvals').select('*').eq('id', approvalId).single()
+      : Promise.resolve({ data: null }),
+    approvalId
+      ? sc.from('document_approval_signatures').select('*').eq('approval_id', approvalId).order('step_order')
+      : Promise.resolve({ data: [] as { id: string; step_order: number; signer_role: string; signer_name: string | null; signature_url: string | null; status: string; comment: string | null; signed_at: string | null }[] }),
+    sc.from('approval_flows').select('id, name, is_default').eq('company_id', meeting.company_id),
+  ])
+  const meetingApproval = approvalRes.data
+  const meetingApprovalSigs = sigsRes.data ?? []
 
   const consultantMap: Record<string, string> = {}
   consultants?.forEach((c) => { consultantMap[c.id] = c.full_name || c.email })

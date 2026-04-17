@@ -95,7 +95,15 @@
       "Bash(echo \"Found in: $f\")",
       "Bash(find /Users/enchi/ttqs-platform -type f \\\\\\(-name *job* -o -name *description* \\\\\\))",
       "Bash(find /Users/enchi/ttqs-platform/src -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\))",
-      "Bash(find /Users/enchi/ttqs-platform/src -type f \\\\\\(-name *.tsx -o -name *.ts \\\\\\))"
+      "Bash(find /Users/enchi/ttqs-platform/src -type f \\\\\\(-name *.tsx -o -name *.ts \\\\\\))",
+      "Bash(find /Users/enchi/ttqs-platform -type f \\\\\\(-name *.sql -o -name migrations \\\\\\))",
+      "Bash(psql -U postgres -h localhost -d postgres -c \"SELECT table_name FROM information_schema.tables WHERE table_name LIKE ''competency%'' AND table_schema = ''public'';\")",
+      "Bash(cat /Users/enchi/ttqs-platform/supabase/migrations/*.sql)",
+      "Bash(do echo:*)",
+      "Read(//Users/enchi/ttqs-platform/**)",
+      "Bash(pdftotext /Users/enchi/Downloads/信用卡機構-經營管理人員-職能基準.pdf -)",
+      "Bash(read dir *)",
+      "Bash([ ! -f \"$dir/loading.tsx\" ])"
     ]
   }
 }

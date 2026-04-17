@@ -37,20 +37,32 @@ export default async function PassportPage({
 
   const sc = createServiceClient()
 
-  // 員工資訊
-  const { data: employee } = await sc.from('profiles').select('id, full_name, email, role').eq('id', employeeId).single()
-  if (!employee) notFound()
+  // Stage 1: 員工主檔 + 各資料表同時拉（互相不相依）
+  const [
+    { data: employee },
+    { data: company },
+    { data: enrollments },
+    { data: scores },
+    { data: jobReqs },
+    { data: idps },
+    { data: certs },
+  ] = await Promise.all([
+    sc.from('profiles').select('id, full_name, email, role').eq('id', employeeId).single(),
+    sc.from('companies').select('id, name').eq('id', companyId).single(),
+    sc.from('course_enrollments')
+      .select('id, status, completion_date, score, course_id')
+      .eq('employee_id', employeeId)
+      .eq('company_id', companyId),
+    sc.from('core_competency_scores').select('*').eq('employee_id', employeeId),
+    sc.from('job_competency_requirements').select('competency_name, required_level').eq('company_id', companyId),
+    sc.from('employee_idp').select('*').eq('employee_id', employeeId).order('created_at', { ascending: false }),
+    sc.from('employee_certificates').select('*').eq('employee_id', employeeId).order('issued_date', { ascending: false }),
+  ])
 
-  const { data: company } = await sc.from('companies').select('id, name').eq('id', companyId).single()
+  if (!employee) notFound()
   if (!company) notFound()
 
-  // 訓練記錄（透過 course_enrollments 連結員工和課程）
-  const { data: enrollments } = await sc
-    .from('course_enrollments')
-    .select('id, status, completion_date, score, course_id')
-    .eq('employee_id', employeeId)
-    .eq('company_id', companyId)
-
+  // Stage 2: courses 依賴 enrollments 的 course_id
   const enrolledCourseIds = enrollments?.map((e) => e.course_id) ?? []
   const { data: courses } = enrolledCourseIds.length > 0
     ? await sc.from('courses').select('id, title, status, start_date, end_date, hours, trainer').in('id', enrolledCourseIds)
@@ -70,32 +82,6 @@ export default async function PassportPage({
       enrollment_status: e.status,
     }
   })
-
-  // 職能分數
-  const { data: scores } = await sc
-    .from('core_competency_scores')
-    .select('*')
-    .eq('employee_id', employeeId)
-
-  // 職務要求（雷達圖第三條線）
-  const { data: jobReqs } = await sc
-    .from('job_competency_requirements')
-    .select('competency_name, required_level')
-    .eq('company_id', companyId)
-
-  // IDP
-  const { data: idps } = await sc
-    .from('employee_idp')
-    .select('*')
-    .eq('employee_id', employeeId)
-    .order('created_at', { ascending: false })
-
-  // 證照
-  const { data: certs } = await sc
-    .from('employee_certificates')
-    .select('*')
-    .eq('employee_id', employeeId)
-    .order('issued_date', { ascending: false })
 
   const empName = employee.full_name || employee.email
 

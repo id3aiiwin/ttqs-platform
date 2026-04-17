@@ -58,46 +58,68 @@ export default async function EntryDetailPage({
   // 員工只能看自己的 entry
   if (!isConsultant && entry.employee_id !== user.id) redirect(`/companies/${companyId}/competency`)
 
-  // 取得員工資訊
-  const { data: employee } = await serviceClient
-    .from('profiles')
-    .select('full_name, email')
-    .eq('id', entry.employee_id)
-    .single()
-
-  // 取得模板欄位（按企業模板，帶 display_name）
-  const { data: templateFields } = await serviceClient
-    .from('competency_form_templates')
-    .select('id, field_name, standard_name, display_name, field_type, is_required, options, sort_order')
-    .eq('company_id', companyId)
-    .eq('form_type', entry.form_type as 'job_analysis')
-    .order('sort_order')
-
-  // 取得欄位值
-  const { data: fieldValues } = await serviceClient
-    .from('competency_form_entry_values')
-    .select('id, template_field_id, field_name, value')
-    .eq('entry_id', entryId)
-
-  // 取得審閱歷史
-  const { data: reviews } = await serviceClient
-    .from('competency_form_reviews')
-    .select('id, reviewer_id, comment, action, created_at')
-    .eq('entry_id', entryId)
-    .order('created_at', { ascending: false })
-
-  // 取得審閱者名稱
-  const reviewerIds = [...new Set((reviews ?? []).map((r) => r.reviewer_id))]
-  const reviewerMap: Record<string, string> = {}
-  if (reviewerIds.length > 0) {
-    const { data: reviewers } = await serviceClient
+  // Stage 2: 取得 employee / templateFields / fieldValues / reviews 及（僅 JD）連動的 analysisEntry 並行
+  const isJd = entry.form_type === 'job_description'
+  const [
+    { data: employee },
+    { data: templateFields },
+    { data: fieldValues },
+    { data: reviews },
+    analysisEntryRes,
+  ] = await Promise.all([
+    serviceClient
       .from('profiles')
-      .select('id, full_name, email')
-      .in('id', reviewerIds)
-    reviewers?.forEach((r) => {
-      reviewerMap[r.id] = r.full_name || r.email || '顧問'
-    })
-  }
+      .select('full_name, email')
+      .eq('id', entry.employee_id)
+      .single(),
+    serviceClient
+      .from('competency_form_templates')
+      .select('id, field_name, standard_name, display_name, field_type, is_required, options, sort_order')
+      .eq('company_id', companyId)
+      .eq('form_type', entry.form_type as 'job_analysis')
+      .order('sort_order'),
+    serviceClient
+      .from('competency_form_entry_values')
+      .select('id, template_field_id, field_name, value')
+      .eq('entry_id', entryId),
+    serviceClient
+      .from('competency_form_reviews')
+      .select('id, reviewer_id, comment, action, created_at')
+      .eq('entry_id', entryId)
+      .order('created_at', { ascending: false }),
+    isJd
+      ? serviceClient
+          .from('competency_form_entries')
+          .select('id')
+          .eq('employee_id', entry.employee_id)
+          .eq('company_id', companyId)
+          .eq('form_type', 'job_analysis')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ])
+
+  // Stage 3: reviewers 與（JD）analysisValues 並行
+  const reviewerIds = [...new Set((reviews ?? []).map((r) => r.reviewer_id))]
+  const analysisEntryId = (analysisEntryRes.data as { id: string } | null)?.id ?? null
+  const [reviewersRes, analysisValuesRes] = await Promise.all([
+    reviewerIds.length > 0
+      ? serviceClient.from('profiles').select('id, full_name, email').in('id', reviewerIds)
+      : Promise.resolve({ data: [] as { id: string; full_name: string | null; email: string | null }[] }),
+    analysisEntryId
+      ? serviceClient
+          .from('competency_form_entry_values')
+          .select('field_name, value')
+          .eq('entry_id', analysisEntryId)
+          .in('field_name', ['basic_info', 'job_analysis_table'])
+      : Promise.resolve({ data: null }),
+  ])
+
+  const reviewerMap: Record<string, string> = {}
+  reviewersRes.data?.forEach((r) => {
+    reviewerMap[r.id] = r.full_name || r.email || '顧問'
+  })
 
   const reviewHistory = (reviews ?? []).map((r) => ({
     id: r.id,
@@ -116,32 +138,16 @@ export default async function EntryDetailPage({
 
   // 工作說明書：連動工作分析的基本資料
   let linkedAnalysisData: Record<string, string> | null = null
-  if (entry.form_type === 'job_description') {
-    const { data: analysisEntry } = await serviceClient
-      .from('competency_form_entries')
-      .select('id')
-      .eq('employee_id', entry.employee_id)
-      .eq('company_id', companyId)
-      .eq('form_type', 'job_analysis')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    if (analysisEntry) {
-      const { data: analysisValues } = await serviceClient
-        .from('competency_form_entry_values')
-        .select('field_name, value')
-        .eq('entry_id', analysisEntry.id)
-        .in('field_name', ['basic_info', 'job_analysis_table'])
-      const basicVal = analysisValues?.find(v => v.field_name === 'basic_info')
-      const tableVal = analysisValues?.find(v => v.field_name === 'job_analysis_table')
-      const raw = basicVal?.value as { v?: Record<string, string> } | null
-      linkedAnalysisData = raw?.v ?? null
-      // 把工作分析的 TDR 也帶過去
-      if (tableVal) {
-        const tdrRaw = tableVal.value as { v?: unknown } | null
-        if (tdrRaw?.v) {
-          linkedAnalysisData = { ...(linkedAnalysisData ?? {}), _analysis_tdr: JSON.stringify(tdrRaw.v) }
-        }
+  if (isJd && analysisValuesRes.data) {
+    const analysisValues = analysisValuesRes.data
+    const basicVal = analysisValues?.find(v => v.field_name === 'basic_info')
+    const tableVal = analysisValues?.find(v => v.field_name === 'job_analysis_table')
+    const raw = basicVal?.value as { v?: Record<string, string> } | null
+    linkedAnalysisData = raw?.v ?? null
+    if (tableVal) {
+      const tdrRaw = tableVal.value as { v?: unknown } | null
+      if (tdrRaw?.v) {
+        linkedAnalysisData = { ...(linkedAnalysisData ?? {}), _analysis_tdr: JSON.stringify(tdrRaw.v) }
       }
     }
   }

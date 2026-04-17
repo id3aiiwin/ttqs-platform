@@ -29,38 +29,56 @@ export default async function DocumentsPage({
 
   const serviceClient = createServiceClient()
 
-  const { data: company } = await serviceClient
-    .from('companies')
-    .select('id, name')
-    .eq('id', id)
-    .single()
+  // Stage 1: company / documents / companyCourses / approvalFlows 並行
+  const [
+    { data: company },
+    { data: documents },
+    { data: companyCourses },
+    { data: approvalFlows },
+  ] = await Promise.all([
+    serviceClient.from('companies').select('id, name').eq('id', id).single(),
+    serviceClient.from('company_documents').select('*').eq('company_id', id).order('tier').order('title'),
+    serviceClient.from('courses').select('id, title, status, start_date').eq('company_id', id).order('created_at', { ascending: false }),
+    serviceClient.from('approval_flows').select('id, name, is_default').eq('company_id', id),
+  ])
 
   if (!company) notFound()
 
-  const { data: documents } = await serviceClient
-    .from('company_documents')
-    .select('*')
-    .eq('company_id', id)
-    .order('tier')
-    .order('title')
-
-  // 取得企業的課程（歸入四階表單）
-  const { data: companyCourses } = await serviceClient
-    .from('courses')
-    .select('id, title, status, start_date')
-    .eq('company_id', id)
-    .order('created_at', { ascending: false })
-
-  // 取得課程表單
   const courseIds = companyCourses?.map((c) => c.id) ?? []
-  const { data: allCourseForms } = courseIds.length > 0
-    ? await serviceClient
-        .from('course_forms')
-        .select('id, course_id, name, standard_name, pddro_phase, form_type, status, ttqs_indicator')
-        .in('course_id', courseIds)
-        .order('pddro_phase')
-        .order('sort_order')
-    : { data: [] }
+  const docIds = documents?.map((d) => d.id) ?? []
+  const approvalIds = documents?.map(d => d.approval_id).filter(Boolean) as string[] ?? []
+  const templateIds = documents?.map(d => d.template_id).filter(Boolean) as string[] ?? []
+
+  // Stage 2: 全部依賴 Stage 1 的 id 清單，彼此無相依 → 並行
+  const [
+    { data: allCourseForms },
+    { data: allVersions },
+    { data: allReviews },
+    { data: allApprovals },
+    { data: allApprovalSigs },
+    { data: kbTemplates },
+  ] = await Promise.all([
+    courseIds.length > 0
+      ? serviceClient.from('course_forms')
+          .select('id, course_id, name, standard_name, pddro_phase, form_type, status, ttqs_indicator')
+          .in('course_id', courseIds).order('pddro_phase').order('sort_order')
+      : Promise.resolve({ data: [] as { id: string; course_id: string; name: string; standard_name: string | null; pddro_phase: string; form_type: string; status: string; ttqs_indicator: string | null }[] }),
+    docIds.length > 0
+      ? serviceClient.from('company_document_versions').select('*').in('document_id', docIds).order('changed_at', { ascending: false })
+      : Promise.resolve({ data: [] }),
+    docIds.length > 0
+      ? serviceClient.from('company_document_reviews').select('*').in('document_id', docIds).order('reviewed_at', { ascending: false })
+      : Promise.resolve({ data: [] }),
+    approvalIds.length > 0
+      ? serviceClient.from('document_approvals').select('*').in('id', approvalIds)
+      : Promise.resolve({ data: [] }),
+    approvalIds.length > 0
+      ? serviceClient.from('document_approval_signatures').select('*').in('approval_id', approvalIds).order('step_order')
+      : Promise.resolve({ data: [] }),
+    templateIds.length > 0
+      ? serviceClient.from('knowledge_base_templates').select('id, structured_content').in('id', [...new Set(templateIds)])
+      : Promise.resolve({ data: [] }),
+  ])
 
   type CourseFormRow = NonNullable<typeof allCourseForms>[number]
   const formsByCourse: Record<string, CourseFormRow[]> = {}
@@ -74,16 +92,7 @@ export default async function DocumentsPage({
     course_forms: formsByCourse[c.id] ?? [],
   }))
 
-  // 取得所有版本和審核紀錄
-  const docIds = documents?.map((d) => d.id) ?? []
-  const { data: allVersions } = docIds.length > 0
-    ? await serviceClient.from('company_document_versions').select('*').in('document_id', docIds).order('changed_at', { ascending: false })
-    : { data: [] }
-  const { data: allReviews } = docIds.length > 0
-    ? await serviceClient.from('company_document_reviews').select('*').in('document_id', docIds).order('reviewed_at', { ascending: false })
-    : { data: [] }
-
-  // 取得相關人員名稱
+  // Stage 3: personProfiles 依賴 Stage 2 的 versions + reviews
   const personIds = [
     ...(allVersions ?? []).map((v) => v.changed_by).filter(Boolean),
     ...(allReviews ?? []).map((r) => r.reviewer_id).filter(Boolean),
@@ -107,15 +116,6 @@ export default async function DocumentsPage({
     reviewsByDoc[r.document_id].push({ ...r, reviewer_name: personMap[r.reviewer_id] ?? undefined })
   })
 
-  // 取得簽核資料
-  const approvalIds = documents?.map(d => d.approval_id).filter(Boolean) as string[] ?? []
-  const { data: allApprovals } = approvalIds.length > 0
-    ? await serviceClient.from('document_approvals').select('*').in('id', approvalIds)
-    : { data: [] }
-  const { data: allApprovalSigs } = approvalIds.length > 0
-    ? await serviceClient.from('document_approval_signatures').select('*').in('approval_id', approvalIds).order('step_order')
-    : { data: [] }
-
   type ApprovalRow = NonNullable<typeof allApprovals>[number]
   type SigRow = NonNullable<typeof allApprovalSigs>[number]
   const approvalMap: Record<string, ApprovalRow> = {}
@@ -126,14 +126,6 @@ export default async function DocumentsPage({
     sigsByApproval[s.approval_id].push(s)
   })
 
-  // 取得企業的簽核流程
-  const { data: approvalFlows } = await serviceClient.from('approval_flows').select('id, name, is_default').eq('company_id', id)
-
-  // 取得所有連結的知識庫模板結構化內容
-  const templateIds = documents?.map(d => d.template_id).filter(Boolean) as string[] ?? []
-  const { data: kbTemplates } = templateIds.length > 0
-    ? await serviceClient.from('knowledge_base_templates').select('id, structured_content').in('id', [...new Set(templateIds)])
-    : { data: [] }
   const templateSchemaMap: Record<string, FormSchema> = {}
   kbTemplates?.forEach(t => { if (t.structured_content) templateSchemaMap[t.id] = t.structured_content as unknown as FormSchema })
 
