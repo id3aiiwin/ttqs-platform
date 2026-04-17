@@ -31,6 +31,13 @@ export async function GET(req: NextRequest) {
   }
 
   const type = req.nextUrl.searchParams.get('type')
+  // 匯出筆數上限（避免資料長大後 OOM / timeout）。可用 ?limit=50000 覆寫到最多 100k。
+  const DEFAULT_LIMIT = 10000
+  const MAX_LIMIT = 100000
+  const requestedLimit = parseInt(req.nextUrl.searchParams.get('limit') ?? '', 10)
+  const limit = Number.isFinite(requestedLimit) && requestedLimit > 0
+    ? Math.min(requestedLimit, MAX_LIMIT)
+    : DEFAULT_LIMIT
   const sc = createServiceClient()
   let csv = ''
   let filename = ''
@@ -38,26 +45,26 @@ export async function GET(req: NextRequest) {
   try {
     switch (type) {
       case 'companies': {
-        const { data } = await sc.from('companies').select('id, name, status, industry, created_at').order('created_at', { ascending: false })
+        const { data } = await sc.from('companies').select('id, name, status, industry, created_at').order('created_at', { ascending: false }).limit(limit)
         csv = toCsv(['ID', '名稱', '狀態', '產業', '建立時間'], data ?? [], ['id', 'name', 'status', 'industry', 'created_at'])
         filename = 'companies.csv'
         break
       }
       case 'profiles': {
-        const { data } = await sc.from('profiles').select('id, full_name, email, role, roles, company_id, phone, birthday, created_at').order('created_at', { ascending: false })
+        const { data } = await sc.from('profiles').select('id, full_name, email, role, roles, company_id, phone, birthday, created_at').order('created_at', { ascending: false }).limit(limit)
         const rows = (data ?? []).map(r => ({ ...r, roles: Array.isArray(r.roles) ? r.roles.join(';') : r.roles }))
         csv = toCsv(['ID', '姓名', '信箱', '角色', '角色列表', '企業ID', '電話', '生日', '建立時間'], rows, ['id', 'full_name', 'email', 'role', 'roles', 'company_id', 'phone', 'birthday', 'created_at'])
         filename = 'profiles.csv'
         break
       }
       case 'courses': {
-        const { data } = await sc.from('courses').select('id, title, status, course_type, start_date, hours, trainer, company_id, total_revenue, created_at').order('created_at', { ascending: false })
+        const { data } = await sc.from('courses').select('id, title, status, course_type, start_date, hours, trainer, company_id, total_revenue, created_at').order('created_at', { ascending: false }).limit(limit)
         csv = toCsv(['ID', '標題', '狀態', '課程類型', '開始日期', '時數', '講師', '企業ID', '總收入', '建立時間'], data ?? [], ['id', 'title', 'status', 'course_type', 'start_date', 'hours', 'trainer', 'company_id', 'total_revenue', 'created_at'])
         filename = 'courses.csv'
         break
       }
       case 'survey_responses': {
-        const { data } = await sc.from('course_survey_responses').select('*, course_surveys(course_id, courses(title))').order('submitted_at', { ascending: false })
+        const { data } = await sc.from('course_survey_responses').select('*, course_surveys(course_id, courses(title))').order('submitted_at', { ascending: false }).limit(limit)
         const rows = (data ?? []).map((r: Record<string, unknown>) => {
           const survey = r.course_surveys as Record<string, unknown> | null
           const course = survey?.courses as Record<string, unknown> | null
@@ -81,13 +88,13 @@ export async function GET(req: NextRequest) {
         break
       }
       case 'interactions': {
-        const { data } = await sc.from('interactions').select('id, target_id, contact_date, contact_type, subject, content, next_action').order('contact_date', { ascending: false })
+        const { data } = await sc.from('interactions').select('id, target_id, contact_date, contact_type, subject, content, next_action').order('contact_date', { ascending: false }).limit(limit)
         csv = toCsv(['ID', '對象ID', '聯繫日期', '聯繫方式', '主題', '內容', '後續動作'], data ?? [], ['id', 'target_id', 'contact_date', 'contact_type', 'subject', 'content', 'next_action'])
         filename = 'interactions.csv'
         break
       }
       case 'todos': {
-        const { data } = await sc.from('todos').select('id, title, status, priority, due_date, assigned_to, created_at').order('created_at', { ascending: false })
+        const { data } = await sc.from('todos').select('id, title, status, priority, due_date, assigned_to, created_at').order('created_at', { ascending: false }).limit(limit)
         csv = toCsv(['ID', '標題', '狀態', '優先級', '到期日', '負責人', '建立時間'], data ?? [], ['id', 'title', 'status', 'priority', 'due_date', 'assigned_to', 'created_at'])
         filename = 'todos.csv'
         break

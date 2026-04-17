@@ -27,16 +27,45 @@ export default async function ClientAnalyticsPage() {
     sc.from('course_surveys').select('course_id, custom_questions'),
   ])
 
+  // O(n²) → O(n)：先建 company_id 索引，避免每家企業都跑一次 filter
+  type CourseRow = NonNullable<typeof courses>[number]
+  type InteractionRow = NonNullable<typeof interactions>[number]
+  const coursesByCompany = new Map<string, CourseRow[]>()
+  for (const c of courses ?? []) {
+    if (!c.company_id) continue
+    const arr = coursesByCompany.get(c.company_id)
+    if (arr) arr.push(c)
+    else coursesByCompany.set(c.company_id, [c])
+  }
+  const interactionsByTarget = new Map<string, InteractionRow[]>()
+  for (const i of interactions ?? []) {
+    if (!i.target_id) continue
+    const arr = interactionsByTarget.get(i.target_id)
+    if (arr) arr.push(i)
+    else interactionsByTarget.set(i.target_id, [i])
+  }
+
   // 整理每家企業的數據
   const companyAnalytics = (companies ?? []).map(company => {
-    const companyCourses = (courses ?? []).filter(c => c.company_id === company.id)
-    const companyInteractions = (interactions ?? []).filter(i => i.target_id === company.id)
+    const companyCourses = coursesByCompany.get(company.id) ?? []
+    const companyInteractions = interactionsByTarget.get(company.id) ?? []
 
-    const totalRevenue = companyCourses.reduce((s, c) => s + (c.total_revenue ?? 0), 0)
+    // 單次線性掃描代替多次 sort：累計 revenue、找最早/最晚課程與最晚互動
+    let totalRevenue = 0
+    let lastCourseDate: string | undefined
+    let firstDealDate: string | undefined
+    for (const c of companyCourses) {
+      totalRevenue += c.total_revenue ?? 0
+      if (c.start_date) {
+        if (!lastCourseDate || c.start_date > lastCourseDate) lastCourseDate = c.start_date
+        if (!firstDealDate || c.start_date < firstDealDate) firstDealDate = c.start_date
+      }
+    }
     const courseCount = companyCourses.length
-    const lastCourseDate = companyCourses.filter(c => c.start_date).sort((a, b) => (b.start_date ?? '').localeCompare(a.start_date ?? ''))[0]?.start_date
-    const lastContactDate = companyInteractions.sort((a, b) => b.contact_date.localeCompare(a.contact_date))[0]?.contact_date
-    const firstDealDate = companyCourses.filter(c => c.start_date).sort((a, b) => (a.start_date ?? '').localeCompare(b.start_date ?? ''))[0]?.start_date
+    let lastContactDate: string | undefined
+    for (const i of companyInteractions) {
+      if (i.contact_date && (!lastContactDate || i.contact_date > lastContactDate)) lastContactDate = i.contact_date
+    }
 
     // 活躍度
     const today = new Date()
@@ -59,9 +88,9 @@ export default async function ClientAnalyticsPage() {
       industry: company.industry,
       totalRevenue,
       courseCount,
-      firstDealDate,
-      lastCourseDate,
-      lastContactDate,
+      firstDealDate: firstDealDate ?? null,
+      lastCourseDate: lastCourseDate ?? null,
+      lastContactDate: lastContactDate ?? null,
       activityLevel,
       contractEnd,
     }

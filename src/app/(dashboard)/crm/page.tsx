@@ -16,7 +16,8 @@ export default async function CrmPage() {
 
   const sc = createServiceClient()
   const [{ data: interactions }, { data: companies }] = await Promise.all([
-    sc.from('interactions').select('*').order('contact_date', { ascending: false }),
+    // 限制最近 500 筆互動紀錄（按日期倒序），避免資料長大後整頁卡住
+    sc.from('interactions').select('*').order('contact_date', { ascending: false }).limit(500),
     sc.from('companies').select('id, name').order('name'),
   ])
 

@@ -36,6 +36,22 @@ export default async function InstructorAnalyticsPage() {
   const courseList = courses ?? []
   const surveyList = surveys ?? []
 
+  // O(n²) → O(n)：一次掃完課程清單，同時建 trainer→課程、courseId→survey 索引
+  const coursesByTrainer = new Map<string, typeof courseList>()
+  for (const c of courseList) {
+    const key = c.trainer ?? ''
+    if (!key) continue
+    const arr = coursesByTrainer.get(key)
+    if (arr) arr.push(c)
+    else coursesByTrainer.set(key, [c])
+  }
+  const surveysByCourse = new Map<string, typeof surveyList>()
+  for (const s of surveyList) {
+    const arr = surveysByCourse.get(s.course_id)
+    if (arr) arr.push(s)
+    else surveysByCourse.set(s.course_id, [s])
+  }
+
   const now = new Date()
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
@@ -45,9 +61,15 @@ export default async function InstructorAnalyticsPage() {
   const twelveMonthsAgo = new Date(now)
   twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12)
 
-  // 計算每位講師績效
+  // 計算每位講師績效（O(1) 查 Map 代替 O(n) filter）
+  const EMPTY_COURSES: typeof courseList = []
   const instructorData = instructors.map(inst => {
-    const myCourses = courseList.filter(c => c.trainer === inst.full_name || c.trainer === inst.id)
+    const byName = inst.full_name ? coursesByTrainer.get(inst.full_name) : undefined
+    const byId = coursesByTrainer.get(inst.id)
+    // trainer 欄位可能存姓名或 id，兩邊都取（避免重覆）
+    const myCourses = byName && byId
+      ? Array.from(new Set([...byName, ...byId]))
+      : byName ?? byId ?? EMPTY_COURSES
     const countedCourses = myCourses.filter(c => c.is_counted_in_hours)
 
     const totalCourses = myCourses.length
@@ -58,9 +80,12 @@ export default async function InstructorAnalyticsPage() {
     const monthCourses = countedCourses.filter(c => c.start_date?.startsWith(thisMonth))
     const monthHours = monthCourses.reduce((s, c) => s + (c.hours ?? 0), 0)
 
-    // 滿意度：從 course_surveys 取
-    const myCourseIds = new Set(myCourses.map(c => c.id))
-    const mySurveys = surveyList.filter(s => myCourseIds.has(s.course_id))
+    // 滿意度：從 course_surveys 取（用索引 Map 代替 filter）
+    const mySurveys: typeof surveyList = []
+    for (const c of myCourses) {
+      const s = surveysByCourse.get(c.id)
+      if (s) mySurveys.push(...s)
+    }
     let averageSatisfaction = inst.average_satisfaction ?? 0
     if (mySurveys.length > 0) {
       const scores: number[] = []
