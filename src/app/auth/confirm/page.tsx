@@ -44,14 +44,20 @@ function AuthConfirmInner() {
 
       // Check for code in search params
       const code = searchParams.get('code')
+      const type = searchParams.get('type')
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (error) {
-          setError(error.message)
+          // 若已有 session（例如 code 已被使用過但 session 還在），仍可進行重設
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session && type === 'recovery') {
+            router.push('/auth/reset-password')
+            return
+          }
+          setError(`${error.message}（連結可能已過期或被使用過，請重新申請）`)
           return
         }
 
-        const type = searchParams.get('type')
         if (type === 'recovery') {
           router.push('/auth/reset-password')
           return
@@ -59,6 +65,15 @@ function AuthConfirmInner() {
 
         router.push('/dashboard')
         return
+      }
+
+      // 無 code 但已有 session 且是 recovery → 直接送去重設密碼
+      if (type === 'recovery') {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          router.push('/auth/reset-password')
+          return
+        }
       }
 
       // Try to get existing session

@@ -97,7 +97,7 @@ export function LoginForm({ companyId, companyName }: { companyId?: string; comp
     if (mode === 'forgot') {
       try {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth/confirm`,
+          redirectTo: `${window.location.origin}/auth/confirm?type=recovery`,
         })
         if (error) {
           setError(error.message)
