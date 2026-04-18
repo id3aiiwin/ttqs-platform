@@ -429,6 +429,14 @@ function JobAnalysisTableSection({
   function removeStep(di: number, ti: number, si: number) {
     const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], steps: tasks[ti].steps.filter((_, i) => i !== si) }; next[di] = { ...next[di], tasks }; update(next)
   }
+  function moveStep(di: number, ti: number, si: number, dir: -1 | 1) {
+    const steps = duties[di].tasks[ti].steps
+    const target = si + dir
+    if (target < 0 || target >= steps.length) return
+    const next = [...duties]; const tasks = [...next[di].tasks]; const reordered = [...tasks[ti].steps]
+    ;[reordered[si], reordered[target]] = [reordered[target], reordered[si]]
+    tasks[ti] = { ...tasks[ti], steps: reordered }; next[di] = { ...next[di], tasks }; update(next)
+  }
   function updateMetric(di: number, ti: number, mi: number, key: 'metric_name' | 'standard_value', val: string) {
     const next = [...duties]; const tasks = [...next[di].tasks]; const metrics = [...tasks[ti].metrics]; metrics[mi] = { ...metrics[mi], [key]: val }; tasks[ti] = { ...tasks[ti], metrics }; next[di] = { ...next[di], tasks }; update(next)
   }
@@ -581,7 +589,23 @@ function JobAnalysisTableSection({
                               className="flex-1 text-sm border border-gray-300 rounded px-2.5 py-1 focus:outline-none focus:border-blue-500"
                             />
                             {!readOnly && (
-                              <button onClick={() => removeStep(di, ti, si)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => moveStep(di, ti, si, -1)}
+                                  disabled={si === 0}
+                                  title="往上移"
+                                  className="text-gray-400 hover:text-gray-700 text-xs disabled:opacity-30 disabled:cursor-not-allowed px-0.5"
+                                >▲</button>
+                                <button
+                                  type="button"
+                                  onClick={() => moveStep(di, ti, si, 1)}
+                                  disabled={si === task.steps.length - 1}
+                                  title="往下移"
+                                  className="text-gray-400 hover:text-gray-700 text-xs disabled:opacity-30 disabled:cursor-not-allowed px-0.5"
+                                >▼</button>
+                                <button type="button" onClick={() => removeStep(di, ti, si)} title="刪除" className="text-red-400 hover:text-red-600 text-xs">✕</button>
+                              </>
                             )}
                           </div>
                         ))}
