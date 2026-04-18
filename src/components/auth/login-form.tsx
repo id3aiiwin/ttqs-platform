@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,7 +35,6 @@ function getPasswordStrength(password: string): { level: 'weak' | 'medium' | 'st
 }
 
 export function LoginForm({ companyId, companyName }: { companyId?: string; companyName?: string }) {
-  const router = useRouter()
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>(companyId ? 'register' : 'login')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -161,8 +159,9 @@ export function LoginForm({ companyId, companyName }: { companyId?: string; comp
     }
 
     clearLoginAttempts()
-    router.push('/dashboard')
-    router.refresh()
+    // 用完整頁面導覽而非 router.push + refresh，避免雙重 RSC fetch；
+    // 也保證新 session cookie 在下次請求就會被送到 server
+    window.location.href = '/dashboard'
   }
 
   const passwordStrength = getPasswordStrength(password)
