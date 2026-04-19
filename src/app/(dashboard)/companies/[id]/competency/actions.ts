@@ -332,6 +332,106 @@ export async function resyncJdFromAnalysis(jdEntryId: string, companyId: string)
   return { ok: true }
 }
 
+/** 從工作說明書反向同步回工作分析（基本資料 + 職責/任務結構） */
+export async function resyncAnalysisFromJd(analysisEntryId: string, jdEntryId: string, companyId: string) {
+  const supabase = createServiceClient()
+
+  // 1. 確認 analysis entry 存在且未核准
+  const { data: analysisEntry } = await supabase
+    .from('competency_form_entries')
+    .select('status')
+    .eq('id', analysisEntryId)
+    .single()
+  if (!analysisEntry) return { error: '找不到工作分析資料' }
+  if (analysisEntry.status === 'approved') return { error: '已核准的工作分析不可同步' }
+
+  // 2. 讀取 JD 欄位值
+  const { data: jdValues } = await supabase
+    .from('competency_form_entry_values')
+    .select('field_name, value')
+    .eq('entry_id', jdEntryId)
+    .in('field_name', ['jd_basic_info', 'jd_tdr'])
+
+  const jdBasic = (jdValues?.find(v => v.field_name === 'jd_basic_info')?.value as { v?: Record<string, string> } | null)?.v ?? null
+  const jdTdrRaw = (jdValues?.find(v => v.field_name === 'jd_tdr')?.value as { v?: unknown } | null)?.v ?? null
+  const jdTdr = Array.isArray(jdTdrRaw) ? (jdTdrRaw as TdrDutyServer[]) : null
+
+  // 3. 讀取工作分析現有欄位值（含 ID）
+  const { data: analysisValues } = await supabase
+    .from('competency_form_entry_values')
+    .select('id, field_name, value')
+    .eq('entry_id', analysisEntryId)
+    .in('field_name', ['basic_info', 'job_analysis_table'])
+
+  const analysisBasicRow = analysisValues?.find(v => v.field_name === 'basic_info')
+  const analysisTdrRow = analysisValues?.find(v => v.field_name === 'job_analysis_table')
+
+  const updates: PromiseLike<unknown>[] = []
+
+  // 4a. 同步基本資料：用 JD 的連動欄位覆蓋分析
+  if (analysisBasicRow && jdBasic) {
+    const existing = (analysisBasicRow.value as { v?: Record<string, string> } | null)?.v ?? {}
+    const merged: Record<string, string> = {
+      ...existing,
+      job_title: jdBasic.job_title ?? existing.job_title ?? '',
+      department: jdBasic.department ?? existing.department ?? '',
+      supervisor: jdBasic.supervisor ?? existing.supervisor ?? '',
+      date: jdBasic.date ?? existing.date ?? '',
+      job_purpose: jdBasic.job_purpose ?? existing.job_purpose ?? '',
+    }
+    updates.push(
+      supabase.from('competency_form_entry_values').update({ value: { v: merged } }).eq('id', analysisBasicRow.id)
+    )
+  }
+
+  // 4b. 同步 TDR → 分析表結構：用 JD 職責/任務名稱更新，保留分析的 metrics/steps/frequency
+  if (analysisTdrRow && jdTdr && jdTdr.length > 0) {
+    // 建立現有分析任務索引（task_name → {metrics, frequency, steps}）
+    interface AnalysisTask { task_name: string; metrics: { metric_name: string; standard_value: string }[]; frequency?: string; steps: string[] }
+    interface AnalysisDuty { duty_name: string; tasks: AnalysisTask[] }
+    const existing = (analysisTdrRow.value as { v?: unknown } | null)?.v
+    const existingDuties: AnalysisDuty[] = Array.isArray(existing) ? (existing as AnalysisDuty[]) : []
+
+    const taskDataMap = new Map<string, Omit<AnalysisTask, 'task_name'>>()
+    for (const duty of existingDuties) {
+      for (const task of duty.tasks) {
+        if (task.task_name) {
+          taskDataMap.set(task.task_name, {
+            metrics: task.metrics?.length ? task.metrics : [{ metric_name: '', standard_value: '' }],
+            frequency: task.frequency ?? '',
+            steps: task.steps ?? [],
+          })
+        }
+      }
+    }
+
+    // 用 JD TDR 結構重建分析表，保留分析特有資料
+    const newAnalysisDuties: AnalysisDuty[] = jdTdr.map(jdDuty => ({
+      duty_name: jdDuty.duty_name,
+      tasks: jdDuty.tasks.map(jdTask => {
+        const preserved = taskDataMap.get(jdTask.task_name)
+        return {
+          task_name: jdTask.task_name,
+          metrics: preserved?.metrics ?? [{ metric_name: '', standard_value: '' }],
+          frequency: preserved?.frequency ?? '',
+          steps: preserved?.steps ?? [],
+        }
+      }),
+    }))
+
+    updates.push(
+      supabase.from('competency_form_entry_values').update({ value: { v: newAnalysisDuties } }).eq('id', analysisTdrRow.id)
+    )
+  }
+
+  if (updates.length === 0) return { error: '工作說明書尚無可同步的資料' }
+
+  await Promise.all(updates)
+  revalidatePath(`/companies/${companyId}/competency/entries/${analysisEntryId}`)
+  revalidatePath(`/companies/${companyId}/competency/entries/${jdEntryId}`)
+  return { ok: true }
+}
+
 /** 新增批閱意見 */
 export async function addEntryReview(
   entryId: string,

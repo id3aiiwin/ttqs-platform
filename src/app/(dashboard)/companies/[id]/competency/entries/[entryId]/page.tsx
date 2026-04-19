@@ -204,6 +204,7 @@ export default async function EntryDetailPage({
               companyId={companyId}
               employeeName={employee?.full_name || employee?.email || ''}
               linkedAnalysisData={linkedAnalysisData}
+              analysisEntryId={analysisEntryId}
               fields={(templateFields ?? []).map((f) => ({
                 ...f,
                 description: (f.options as Record<string, unknown> | null)?.description as string | null ?? null,

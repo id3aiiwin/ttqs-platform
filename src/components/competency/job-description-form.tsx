@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardHeader, CardBody } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { updateFieldValue, updateEntryStatus, resyncJdFromAnalysis } from '@/app/(dashboard)/companies/[id]/competency/actions'
+import { updateFieldValue, updateEntryStatus, resyncJdFromAnalysis, resyncAnalysisFromJd } from '@/app/(dashboard)/companies/[id]/competency/actions'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -33,6 +33,7 @@ interface Props {
   companyId: string
   employeeName?: string
   linkedAnalysisData?: Record<string, string> | null
+  analysisEntryId?: string | null
   fields: TemplateField[]
   values: FieldValue[]
   isConsultant: boolean
@@ -77,10 +78,11 @@ function extractValue(raw: unknown): unknown {
 /*  Main component                                                     */
 /* ------------------------------------------------------------------ */
 
-export function JobDescriptionForm({ entryId, companyId, employeeName, linkedAnalysisData, fields, values, isConsultant, readOnly = false }: Props) {
+export function JobDescriptionForm({ entryId, companyId, employeeName, linkedAnalysisData, analysisEntryId, fields, values, isConsultant, readOnly = false }: Props) {
   const router = useRouter()
   const [submitPending, startSubmitTransition] = useTransition()
   const [syncPending, setSyncPending] = useState(false)
+  const [syncBackPending, setSyncBackPending] = useState(false)
   const [syncResult, setSyncResult] = useState<{ ok?: boolean; error?: string } | null>(null)
 
   // Build a map: field_name -> { valueId, value }
@@ -114,7 +116,6 @@ export function JobDescriptionForm({ entryId, companyId, employeeName, linkedAna
         setSyncPending(false)
       } else {
         setSyncResult({ ok: true })
-        // 重新載入頁面讓所有 section 重新初始化
         window.location.reload()
       }
     } catch {
@@ -123,37 +124,82 @@ export function JobDescriptionForm({ entryId, companyId, employeeName, linkedAna
     }
   }
 
+  async function handleSyncBack() {
+    if (!analysisEntryId) return
+    if (!confirm('確定要將工作說明書的修改同步回工作分析？\n\n這將更新工作分析的：職稱、部門、主管、日期、職位目的，以及職責/任務名稱結構。\n\n工作分析的衡量指標、步驟等內容將自動保留（相同任務名稱）。')) return
+    setSyncBackPending(true)
+    setSyncResult(null)
+    try {
+      const res = await resyncAnalysisFromJd(analysisEntryId, entryId, companyId)
+      if (res?.error) {
+        setSyncResult({ error: res.error })
+      } else {
+        setSyncResult({ ok: true })
+        window.location.reload()
+      }
+    } catch {
+      setSyncResult({ error: '同步失敗，請稍後再試' })
+    } finally {
+      setSyncBackPending(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-8">
-      {/* 從工作分析同步按鈕 */}
+      {/* 雙向同步橫幅 */}
       {!readOnly && linkedAnalysisData && (
-        <div className="flex items-center justify-between rounded-lg bg-blue-50 border border-blue-200 px-4 py-3">
-          <div>
-            <p className="text-sm font-medium text-blue-800">工作分析已連動</p>
-            <p className="text-xs text-blue-600 mt-0.5">若已修改工作分析，可重新同步至此工作說明書</p>
+        <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-blue-800">工作分析已連動</p>
+              <p className="text-xs text-blue-600 mt-0.5">修改任一份後可雙向同步，相同任務的填寫內容自動保留</p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* 分析 → JD */}
+              <button
+                onClick={handleSync}
+                disabled={syncPending || syncBackPending}
+                title="將最新工作分析套用到此工作說明書"
+                className="flex items-center gap-1.5 text-xs font-medium text-blue-700 hover:text-blue-900 bg-white border border-blue-300 rounded-lg px-2.5 py-1.5 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                {syncPending ? (
+                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                  </svg>
+                )}
+                分析 → 說明書
+              </button>
+
+              <span className="text-blue-300 text-sm">|</span>
+
+              {/* JD → 分析 */}
+              {analysisEntryId && (
+                <button
+                  onClick={handleSyncBack}
+                  disabled={syncPending || syncBackPending}
+                  title="將工作說明書的修改回寫至工作分析"
+                  className="flex items-center gap-1.5 text-xs font-medium text-indigo-700 hover:text-indigo-900 bg-white border border-indigo-300 rounded-lg px-2.5 py-1.5 hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  {syncBackPending ? (
+                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                    </svg>
+                  )}
+                  說明書 → 分析
+                </button>
+              )}
+            </div>
           </div>
-          <button
-            onClick={handleSync}
-            disabled={syncPending}
-            className="flex items-center gap-1.5 text-sm font-medium text-blue-700 hover:text-blue-900 bg-white border border-blue-300 rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {syncPending ? (
-              <>
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                同步中...
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                從工作分析重新同步
-              </>
-            )}
-          </button>
         </div>
       )}
 
