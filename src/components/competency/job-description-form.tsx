@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardHeader, CardBody } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { updateFieldValue, updateEntryStatus } from '@/app/(dashboard)/companies/[id]/competency/actions'
+import { updateFieldValue, updateEntryStatus, resyncJdFromAnalysis } from '@/app/(dashboard)/companies/[id]/competency/actions'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -80,6 +80,8 @@ function extractValue(raw: unknown): unknown {
 export function JobDescriptionForm({ entryId, companyId, employeeName, linkedAnalysisData, fields, values, isConsultant, readOnly = false }: Props) {
   const router = useRouter()
   const [submitPending, startSubmitTransition] = useTransition()
+  const [syncPending, setSyncPending] = useState(false)
+  const [syncResult, setSyncResult] = useState<{ ok?: boolean; error?: string } | null>(null)
 
   // Build a map: field_name -> { valueId, value }
   const valuesMap = useRef<Record<string, { valueId: string; value: unknown }>>({})
@@ -101,8 +103,64 @@ export function JobDescriptionForm({ entryId, companyId, employeeName, linkedAna
     })
   }
 
+  async function handleSync() {
+    if (!confirm('確定要從工作分析重新同步？\n\n這將更新：工作職稱、部門、主管、日期、職位目的，以及工作職掌 TDR 的職責/任務結構。\n\n相同任務名稱的工作產出、行為指標、KSA 填寫內容將自動保留。')) return
+    setSyncPending(true)
+    setSyncResult(null)
+    try {
+      const res = await resyncJdFromAnalysis(entryId, companyId)
+      if (res?.error) {
+        setSyncResult({ error: res.error })
+        setSyncPending(false)
+      } else {
+        setSyncResult({ ok: true })
+        // 重新載入頁面讓所有 section 重新初始化
+        window.location.reload()
+      }
+    } catch {
+      setSyncResult({ error: '同步失敗，請稍後再試' })
+      setSyncPending(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-8">
+      {/* 從工作分析同步按鈕 */}
+      {!readOnly && linkedAnalysisData && (
+        <div className="flex items-center justify-between rounded-lg bg-blue-50 border border-blue-200 px-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-blue-800">工作分析已連動</p>
+            <p className="text-xs text-blue-600 mt-0.5">若已修改工作分析，可重新同步至此工作說明書</p>
+          </div>
+          <button
+            onClick={handleSync}
+            disabled={syncPending}
+            className="flex items-center gap-1.5 text-sm font-medium text-blue-700 hover:text-blue-900 bg-white border border-blue-300 rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {syncPending ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                同步中...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                從工作分析重新同步
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {syncResult?.error && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{syncResult.error}</div>
+      )}
+
       {/* Section 1: Basic Info (includes 職位目的) */}
       {basicInfoField && (
         <JdBasicInfoSection
