@@ -84,6 +84,9 @@ export function JobDescriptionForm({ entryId, companyId, employeeName, linkedAna
   const [syncPending, setSyncPending] = useState(false)
   const [syncBackPending, setSyncBackPending] = useState(false)
   const [syncResult, setSyncResult] = useState<{ ok?: boolean; error?: string } | null>(null)
+  const [pendingSaves, setPendingSaves] = useState(0)
+  const onSaveStart = useCallback(() => setPendingSaves(n => n + 1), [])
+  const onSaveEnd = useCallback(() => setPendingSaves(n => Math.max(0, n - 1)), [])
 
   // Build a map: field_name -> { valueId, value }
   const valuesMap = useRef<Record<string, { valueId: string; value: unknown }>>({})
@@ -217,6 +220,8 @@ export function JobDescriptionForm({ entryId, companyId, employeeName, linkedAna
           readOnly={readOnly}
           employeeName={employeeName}
           linkedAnalysisData={linkedAnalysisData}
+          onSaveStart={onSaveStart}
+          onSaveEnd={onSaveEnd}
         />
       )}
 
@@ -228,6 +233,8 @@ export function JobDescriptionForm({ entryId, companyId, employeeName, linkedAna
           companyId={companyId}
           readOnly={readOnly}
           linkedAnalysisData={linkedAnalysisData}
+          onSaveStart={onSaveStart}
+          onSaveEnd={onSaveEnd}
         />
       )}
 
@@ -238,6 +245,8 @@ export function JobDescriptionForm({ entryId, companyId, employeeName, linkedAna
           valueEntry={valuesMap.current[skaField.field_name]}
           companyId={companyId}
           readOnly={readOnly}
+          onSaveStart={onSaveStart}
+          onSaveEnd={onSaveEnd}
         />
       )}
 
@@ -245,10 +254,20 @@ export function JobDescriptionForm({ entryId, companyId, employeeName, linkedAna
       {!readOnly && (
         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
           <p className="text-xs text-gray-400">編輯時自動儲存</p>
-          <div className="flex gap-3">
-            <Button variant="ghost" onClick={() => router.refresh()}>
-              已儲存 ✓
-            </Button>
+          <div className="flex items-center gap-3">
+            {pendingSaves > 0 ? (
+              <span className="flex items-center gap-1.5 text-xs text-blue-500 px-3 py-1.5">
+                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                儲存中...
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-xs text-gray-400 px-3 py-1.5">
+                ✓ 已儲存至雲端
+              </span>
+            )}
             <Button variant="primary" loading={submitPending} onClick={handleSubmit}>
               送出審閱
             </Button>
@@ -267,6 +286,8 @@ function useDebouncedSave(
   valueId: string | undefined,
   companyId: string,
   readOnly: boolean,
+  onSaveStart?: () => void,
+  onSaveEnd?: () => void,
 ) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [saving, setSaving] = useState(false)
@@ -276,12 +297,14 @@ function useDebouncedSave(
       if (!valueId || readOnly) return
       if (saveTimer.current) clearTimeout(saveTimer.current)
       saveTimer.current = setTimeout(async () => {
+        onSaveStart?.()
         setSaving(true)
         await updateFieldValue(valueId, { v: newValue }, companyId)
         setSaving(false)
+        onSaveEnd?.()
       }, 600)
     },
-    [valueId, companyId, readOnly],
+    [valueId, companyId, readOnly, onSaveStart, onSaveEnd],
   )
 
   return { doSave, saving }
@@ -307,6 +330,8 @@ function JdBasicInfoSection({
   readOnly,
   employeeName,
   linkedAnalysisData,
+  onSaveStart,
+  onSaveEnd,
 }: {
   field: TemplateField
   valueEntry?: { valueId: string; value: unknown }
@@ -315,6 +340,8 @@ function JdBasicInfoSection({
   readOnly: boolean
   employeeName?: string
   linkedAnalysisData?: Record<string, string> | null
+  onSaveStart?: () => void
+  onSaveEnd?: () => void
 }) {
   const label = field.display_name || field.standard_name || '基本資料'
 
@@ -343,8 +370,8 @@ function JdBasicInfoSection({
   }
 
   const [data, setData] = useState<Record<string, string>>(initial)
-  const { doSave, saving } = useDebouncedSave(valueEntry?.valueId, companyId, readOnly)
-  const { doSave: doSavePurpose } = useDebouncedSave(purposeValueEntry?.valueId, companyId, readOnly)
+  const { doSave, saving } = useDebouncedSave(valueEntry?.valueId, companyId, readOnly, onSaveStart, onSaveEnd)
+  const { doSave: doSavePurpose } = useDebouncedSave(purposeValueEntry?.valueId, companyId, readOnly, onSaveStart, onSaveEnd)
 
   // 首次載入時，如果有連動帶入就存一次
   const autoSaveRef = useRef(false)
@@ -519,12 +546,16 @@ function JdTdrSection({
   companyId,
   readOnly,
   linkedAnalysisData,
+  onSaveStart,
+  onSaveEnd,
 }: {
   field: TemplateField
   valueEntry?: { valueId: string; value: unknown }
   companyId: string
   readOnly: boolean
   linkedAnalysisData?: Record<string, string> | null
+  onSaveStart?: () => void
+  onSaveEnd?: () => void
 }) {
   const label = field.display_name || field.standard_name || '工作職掌與任務 TDR'
   const hasExistingData = Array.isArray(valueEntry?.value) && (valueEntry!.value as TdrDuty[]).length > 0
@@ -556,7 +587,7 @@ function JdTdrSection({
       updateFieldValue(valueEntry.valueId, { v: linkedTdr }, companyId)
     }, 200)
   }
-  const { doSave, saving } = useDebouncedSave(valueEntry?.valueId, companyId, readOnly)
+  const { doSave, saving } = useDebouncedSave(valueEntry?.valueId, companyId, readOnly, onSaveStart, onSaveEnd)
 
   const DUTY_LABELS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
@@ -837,16 +868,20 @@ function JdSkaSection({
   valueEntry,
   companyId,
   readOnly,
+  onSaveStart,
+  onSaveEnd,
 }: {
   field: TemplateField
   valueEntry?: { valueId: string; value: unknown }
   companyId: string
   readOnly: boolean
+  onSaveStart?: () => void
+  onSaveEnd?: () => void
 }) {
   const label = field.display_name || field.standard_name || '工作規範與資格條件 SKA'
   const initial = (valueEntry?.value ?? {}) as Record<string, string>
   const [data, setData] = useState<Record<string, string>>(initial)
-  const { doSave, saving } = useDebouncedSave(valueEntry?.valueId, companyId, readOnly)
+  const { doSave, saving } = useDebouncedSave(valueEntry?.valueId, companyId, readOnly, onSaveStart, onSaveEnd)
 
   function handleChange(key: string, val: string) {
     const next = { ...data, [key]: val }

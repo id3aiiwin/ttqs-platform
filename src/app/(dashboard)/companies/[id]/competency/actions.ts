@@ -331,7 +331,7 @@ export async function resyncJdFromAnalysis(jdEntryId: string, companyId: string)
   const jdBasicRow = jdValues?.find(v => v.field_name === 'jd_basic_info')
   const jdTdrRow = jdValues?.find(v => v.field_name === 'jd_tdr')
 
-  const updates: PromiseLike<unknown>[] = []
+  let updated = 0
 
   // 5a. 同步基本資料（只覆蓋分析連動欄位，保留 deputy、analyst 等 JD 專屬欄位）
   if (jdBasicRow && analysisBasic) {
@@ -344,9 +344,15 @@ export async function resyncJdFromAnalysis(jdEntryId: string, companyId: string)
       date: analysisBasic.date ?? existing.date ?? '',
       job_purpose: analysisBasic.job_purpose ?? existing.job_purpose ?? '',
     }
-    updates.push(
-      supabase.from('competency_form_entry_values').update({ value: { v: merged } }).eq('id', jdBasicRow.id)
-    )
+    const { error } = await supabase
+      .from('competency_form_entry_values')
+      .update({ value: { v: merged } as Record<string, unknown> })
+      .eq('id', jdBasicRow.id)
+    if (error) {
+      console.error('[resyncJdFromAnalysis] basic_info update failed:', error)
+      return { error: `基本資料同步失敗：${error.message}` }
+    }
+    updated++
   }
 
   // 5b. 同步 TDR：重新從分析遷移，智慧保留現有 JD 填寫資料
@@ -357,17 +363,23 @@ export async function resyncJdFromAnalysis(jdEntryId: string, companyId: string)
       const merged = existingDuties && existingDuties.length > 0
         ? smartMergeTdr(newDuties, existingDuties)
         : newDuties
-      updates.push(
-        supabase.from('competency_form_entry_values').update({ value: { v: merged } }).eq('id', jdTdrRow.id)
-      )
+      const { error } = await supabase
+        .from('competency_form_entry_values')
+        .update({ value: { v: merged } as Record<string, unknown> })
+        .eq('id', jdTdrRow.id)
+      if (error) {
+        console.error('[resyncJdFromAnalysis] jd_tdr update failed:', error)
+        return { error: `TDR 同步失敗：${error.message}` }
+      }
+      updated++
     }
   }
 
-  if (updates.length === 0) return { error: '工作分析尚無可同步的資料' }
+  if (updated === 0) return { error: '工作分析尚無可同步的資料（工作分析或說明書尚未填寫）' }
 
-  await Promise.all(updates)
+  revalidatePath(`/companies/${companyId}/competency`)
   revalidatePath(`/companies/${companyId}/competency/entries/${jdEntryId}`)
-  return { ok: true }
+  return { ok: true, updated }
 }
 
 /** 從工作說明書反向同步回工作分析（基本資料 + 職責/任務結構） */
@@ -404,7 +416,7 @@ export async function resyncAnalysisFromJd(analysisEntryId: string, jdEntryId: s
   const analysisBasicRow = analysisValues?.find(v => v.field_name === 'basic_info')
   const analysisTdrRow = analysisValues?.find(v => v.field_name === 'job_analysis_table')
 
-  const updates: PromiseLike<unknown>[] = []
+  let updated = 0
 
   // 4a. 同步基本資料：用 JD 的連動欄位覆蓋分析
   if (analysisBasicRow && jdBasic) {
@@ -417,9 +429,15 @@ export async function resyncAnalysisFromJd(analysisEntryId: string, jdEntryId: s
       date: jdBasic.date ?? existing.date ?? '',
       job_purpose: jdBasic.job_purpose ?? existing.job_purpose ?? '',
     }
-    updates.push(
-      supabase.from('competency_form_entry_values').update({ value: { v: merged } }).eq('id', analysisBasicRow.id)
-    )
+    const { error } = await supabase
+      .from('competency_form_entry_values')
+      .update({ value: { v: merged } as Record<string, unknown> })
+      .eq('id', analysisBasicRow.id)
+    if (error) {
+      console.error('[resyncAnalysisFromJd] basic_info update failed:', error)
+      return { error: `基本資料同步失敗：${error.message}` }
+    }
+    updated++
   }
 
   // 4b. 同步 TDR → 分析表結構：用 JD 職責/任務名稱更新，保留分析的 metrics/steps/frequency
@@ -457,17 +475,23 @@ export async function resyncAnalysisFromJd(analysisEntryId: string, jdEntryId: s
       }),
     }))
 
-    updates.push(
-      supabase.from('competency_form_entry_values').update({ value: { v: newAnalysisDuties } }).eq('id', analysisTdrRow.id)
-    )
+    const { error } = await supabase
+      .from('competency_form_entry_values')
+      .update({ value: { v: newAnalysisDuties } as Record<string, unknown> })
+      .eq('id', analysisTdrRow.id)
+    if (error) {
+      console.error('[resyncAnalysisFromJd] job_analysis_table update failed:', error)
+      return { error: `職責任務結構同步失敗：${error.message}` }
+    }
+    updated++
   }
 
-  if (updates.length === 0) return { error: '工作說明書尚無可同步的資料' }
+  if (updated === 0) return { error: '工作說明書尚無可同步的資料' }
 
-  await Promise.all(updates)
+  revalidatePath(`/companies/${companyId}/competency`)
   revalidatePath(`/companies/${companyId}/competency/entries/${analysisEntryId}`)
   revalidatePath(`/companies/${companyId}/competency/entries/${jdEntryId}`)
-  return { ok: true }
+  return { ok: true, updated }
 }
 
 /** 新增批閱意見 */
