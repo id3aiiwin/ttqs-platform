@@ -217,6 +217,7 @@ export function JobDescriptionForm({ entryId, companyId, employeeName, linkedAna
           valueEntry={valuesMap.current[basicInfoField.field_name]}
           purposeValueEntry={purposeField ? valuesMap.current[purposeField.field_name] : undefined}
           companyId={companyId}
+          entryId={entryId}
           readOnly={readOnly}
           employeeName={employeeName}
           linkedAnalysisData={linkedAnalysisData}
@@ -231,6 +232,7 @@ export function JobDescriptionForm({ entryId, companyId, employeeName, linkedAna
           field={tdrField}
           valueEntry={valuesMap.current[tdrField.field_name]}
           companyId={companyId}
+          entryId={entryId}
           readOnly={readOnly}
           linkedAnalysisData={linkedAnalysisData}
           onSaveStart={onSaveStart}
@@ -244,6 +246,7 @@ export function JobDescriptionForm({ entryId, companyId, employeeName, linkedAna
           field={skaField}
           valueEntry={valuesMap.current[skaField.field_name]}
           companyId={companyId}
+          entryId={entryId}
           readOnly={readOnly}
           onSaveStart={onSaveStart}
           onSaveEnd={onSaveEnd}
@@ -288,6 +291,7 @@ function useDebouncedSave(
   readOnly: boolean,
   onSaveStart?: () => void,
   onSaveEnd?: () => void,
+  entryId?: string,
 ) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [saving, setSaving] = useState(false)
@@ -299,12 +303,12 @@ function useDebouncedSave(
       saveTimer.current = setTimeout(async () => {
         onSaveStart?.()
         setSaving(true)
-        await updateFieldValue(valueId, { v: newValue }, companyId)
+        await updateFieldValue(valueId, { v: newValue }, companyId, entryId)
         setSaving(false)
         onSaveEnd?.()
       }, 600)
     },
-    [valueId, companyId, readOnly, onSaveStart, onSaveEnd],
+    [valueId, companyId, readOnly, onSaveStart, onSaveEnd, entryId],
   )
 
   return { doSave, saving }
@@ -327,6 +331,7 @@ function JdBasicInfoSection({
   valueEntry,
   purposeValueEntry,
   companyId,
+  entryId,
   readOnly,
   employeeName,
   linkedAnalysisData,
@@ -337,6 +342,7 @@ function JdBasicInfoSection({
   valueEntry?: { valueId: string; value: unknown }
   purposeValueEntry?: { valueId: string; value: unknown }
   companyId: string
+  entryId?: string
   readOnly: boolean
   employeeName?: string
   linkedAnalysisData?: Record<string, string> | null
@@ -370,8 +376,8 @@ function JdBasicInfoSection({
   }
 
   const [data, setData] = useState<Record<string, string>>(initial)
-  const { doSave, saving } = useDebouncedSave(valueEntry?.valueId, companyId, readOnly, onSaveStart, onSaveEnd)
-  const { doSave: doSavePurpose } = useDebouncedSave(purposeValueEntry?.valueId, companyId, readOnly, onSaveStart, onSaveEnd)
+  const { doSave, saving } = useDebouncedSave(valueEntry?.valueId, companyId, readOnly, onSaveStart, onSaveEnd, entryId)
+  const { doSave: doSavePurpose } = useDebouncedSave(purposeValueEntry?.valueId, companyId, readOnly, onSaveStart, onSaveEnd, entryId)
 
   // 首次載入時，如果有連動帶入就存一次
   const autoSaveRef = useRef(false)
@@ -544,6 +550,7 @@ function JdTdrSection({
   field,
   valueEntry,
   companyId,
+  entryId,
   readOnly,
   linkedAnalysisData,
   onSaveStart,
@@ -552,6 +559,7 @@ function JdTdrSection({
   field: TemplateField
   valueEntry?: { valueId: string; value: unknown }
   companyId: string
+  entryId?: string
   readOnly: boolean
   linkedAnalysisData?: Record<string, string> | null
   onSaveStart?: () => void
@@ -587,7 +595,7 @@ function JdTdrSection({
       updateFieldValue(valueEntry.valueId, { v: linkedTdr }, companyId)
     }, 200)
   }
-  const { doSave, saving } = useDebouncedSave(valueEntry?.valueId, companyId, readOnly, onSaveStart, onSaveEnd)
+  const { doSave, saving } = useDebouncedSave(valueEntry?.valueId, companyId, readOnly, onSaveStart, onSaveEnd, entryId)
 
   const DUTY_LABELS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
@@ -867,6 +875,7 @@ function JdSkaSection({
   field,
   valueEntry,
   companyId,
+  entryId,
   readOnly,
   onSaveStart,
   onSaveEnd,
@@ -874,6 +883,7 @@ function JdSkaSection({
   field: TemplateField
   valueEntry?: { valueId: string; value: unknown }
   companyId: string
+  entryId?: string
   readOnly: boolean
   onSaveStart?: () => void
   onSaveEnd?: () => void
@@ -881,7 +891,7 @@ function JdSkaSection({
   const label = field.display_name || field.standard_name || '工作規範與資格條件 SKA'
   const initial = (valueEntry?.value ?? {}) as Record<string, string>
   const [data, setData] = useState<Record<string, string>>(initial)
-  const { doSave, saving } = useDebouncedSave(valueEntry?.valueId, companyId, readOnly, onSaveStart, onSaveEnd)
+  const { doSave, saving } = useDebouncedSave(valueEntry?.valueId, companyId, readOnly, onSaveStart, onSaveEnd, entryId)
 
   function handleChange(key: string, val: string) {
     const next = { ...data, [key]: val }

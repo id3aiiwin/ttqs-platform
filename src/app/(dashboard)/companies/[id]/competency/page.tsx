@@ -206,6 +206,7 @@ export default async function CompetencyPage({
                       <Link
                         key={entry.id}
                         href={`/companies/${id}/competency/entries/${entry.id}`}
+                        prefetch={false}
                         className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-colors"
                       >
                         <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">

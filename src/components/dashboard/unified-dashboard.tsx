@@ -600,6 +600,7 @@ function EmployeeContent({ data }: { data: Record<string, unknown> }) {
               const st = ENTRY_STATUS_MAP[e.status] ?? ENTRY_STATUS_MAP.draft
               return (
                 <Link key={e.id} href={`/companies/${companyId}/competency/entries/${e.id}`}
+                  prefetch={false}
                   className="px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{FORM_TYPE_LABELS[e.form_type] ?? e.form_type}</p>
