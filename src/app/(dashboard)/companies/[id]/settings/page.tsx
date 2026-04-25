@@ -29,7 +29,7 @@ export default async function CompanySettingsPage({ params }: { params: Promise<
   if (!company) notFound()
 
   const { data: departments } = await sc.from('departments')
-    .select('id, name, manager_id, sort_order, is_active')
+    .select('id, name, manager_id, sort_order, is_active, parent_id')
     .eq('company_id', id)
     .order('sort_order')
 

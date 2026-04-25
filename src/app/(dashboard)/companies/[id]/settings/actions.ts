@@ -8,7 +8,7 @@ function revalidateCompany(companyId: string) {
   revalidatePath(`/companies/${companyId}/organization`)
 }
 
-export async function addDepartment(companyId: string, name: string, managerId?: string) {
+export async function addDepartment(companyId: string, name: string, managerId?: string, parentId?: string) {
   const sc = createServiceClient()
 
   const { data: existing } = await sc.from('departments')
@@ -21,6 +21,7 @@ export async function addDepartment(companyId: string, name: string, managerId?:
     company_id: companyId,
     name,
     manager_id: managerId || null,
+    parent_id: parentId || null,
     sort_order: nextOrder,
   })
   if (error) return { error: error.message }

@@ -103,7 +103,8 @@
       "Read(//Users/enchi/ttqs-platform/**)",
       "Bash(pdftotext /Users/enchi/Downloads/信用卡機構-經營管理人員-職能基準.pdf -)",
       "Bash(read dir *)",
-      "Bash([ ! -f \"$dir/loading.tsx\" ])"
+      "Bash([ ! -f \"$dir/loading.tsx\" ])",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }

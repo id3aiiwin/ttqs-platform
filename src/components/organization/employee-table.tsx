@@ -12,7 +12,7 @@ interface Employee {
   id: string; full_name: string | null; email: string; role: string
   department_id: string | null; created_at: string
 }
-interface Dept { id: string; name: string }
+interface Dept { id: string; name: string; parent_id: string | null }
 
 export function EmployeeTable({ employees, departments, deptMap, companyId, isConsultant }: {
   employees: Employee[]
@@ -33,13 +33,13 @@ export function EmployeeTable({ employees, departments, deptMap, companyId, isCo
             <th className="px-5 py-2 text-left">姓名</th>
             <th className="px-4 py-2 text-left">Email</th>
             <th className="px-4 py-2 text-center">角色</th>
-            <th className="px-4 py-2 text-left">部門</th>
+            <th className="px-4 py-2 text-left">部門／科別</th>
             <th className="px-4 py-2 text-center">加入日期</th>
             {isConsultant && <th className="px-4 py-2 text-center">操作</th>}
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
-          {employees.map((emp) => (
+          {employees.map(emp => (
             <EmployeeRow key={emp.id} emp={emp} departments={departments} deptMap={deptMap}
               companyId={companyId} isConsultant={isConsultant} />
           ))}
@@ -50,7 +50,7 @@ export function EmployeeTable({ employees, departments, deptMap, companyId, isCo
 }
 
 function EmployeeRow({ emp, departments, deptMap, companyId, isConsultant }: {
-  emp: Employee; departments: Dept[]; deptMap: Record<string, { name: string }>
+  emp: Employee; departments: Dept[]; deptMap: Record<string, { name: string; managerId: string | null }>
   companyId: string; isConsultant: boolean
 }) {
   const [editing, setEditing] = useState(false)
@@ -58,6 +58,21 @@ function EmployeeRow({ emp, departments, deptMap, companyId, isConsultant }: {
   const [deptId, setDeptId] = useState(emp.department_id ?? '')
   const [pending, startTransition] = useTransition()
   const router = useRouter()
+
+  const topLevel = departments.filter(d => !d.parent_id)
+  const sections = (parentId: string) => departments.filter(d => d.parent_id === parentId)
+
+  // 組合顯示名稱：若是科別，顯示「部門 / 科別」
+  function getDeptLabel(id: string | null) {
+    if (!id) return null
+    const d = departments.find(x => x.id === id)
+    if (!d) return deptMap[id]?.name ?? '—'
+    if (d.parent_id) {
+      const parent = departments.find(x => x.id === d.parent_id)
+      return parent ? `${parent.name} / ${d.name}` : d.name
+    }
+    return d.name
+  }
 
   function handleSave() {
     startTransition(async () => {
@@ -67,7 +82,7 @@ function EmployeeRow({ emp, departments, deptMap, companyId, isConsultant }: {
     })
   }
 
-  const deptName = emp.department_id ? deptMap[emp.department_id]?.name ?? '—' : '—'
+  const deptLabel = getDeptLabel(emp.department_id)
   const joinDate = new Date(emp.created_at).toLocaleDateString('zh-TW')
 
   return (
@@ -81,7 +96,7 @@ function EmployeeRow({ emp, departments, deptMap, companyId, isConsultant }: {
       <td className="px-4 py-3 text-gray-500">{emp.email}</td>
       <td className="px-4 py-3 text-center">
         {editing ? (
-          <select value={role} onChange={(e) => setRole(e.target.value)}
+          <select value={role} onChange={e => setRole(e.target.value)}
             className="text-xs border border-gray-300 rounded px-2 py-1 bg-white">
             <option value="hr">HR</option>
             <option value="manager">主管</option>
@@ -95,14 +110,25 @@ function EmployeeRow({ emp, departments, deptMap, companyId, isConsultant }: {
       </td>
       <td className="px-4 py-3">
         {editing ? (
-          <select value={deptId} onChange={(e) => setDeptId(e.target.value)}
-            className="text-xs border border-gray-300 rounded px-2 py-1 bg-white">
+          /* 兩層下拉：optgroup = 部門，option = 科別 */
+          <select value={deptId} onChange={e => setDeptId(e.target.value)}
+            className="text-xs border border-gray-300 rounded px-2 py-1 bg-white min-w-[140px]">
             <option value="">未分配</option>
-            {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            {topLevel.map(d => {
+              const secs = sections(d.id)
+              return secs.length > 0 ? (
+                <optgroup key={d.id} label={d.name}>
+                  <option value={d.id}>【{d.name}】（直屬）</option>
+                  {secs.map(s => <option key={s.id} value={s.id}>　└ {s.name}</option>)}
+                </optgroup>
+              ) : (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              )
+            })}
           </select>
         ) : (
-          <span className={emp.department_id ? 'text-gray-700' : 'text-amber-500 text-xs'}>
-            {emp.department_id ? deptName : '未分配'}
+          <span className={deptLabel ? 'text-gray-700' : 'text-amber-500 text-xs'}>
+            {deptLabel ?? '未分配'}
           </span>
         )}
       </td>
@@ -117,8 +143,7 @@ function EmployeeRow({ emp, departments, deptMap, companyId, isConsultant }: {
                 className="text-xs text-gray-400 hover:text-gray-600">取消</button>
             </div>
           ) : (
-            <button onClick={() => setEditing(true)}
-              className="text-xs text-indigo-600 hover:text-indigo-700">編輯</button>
+            <button onClick={() => setEditing(true)} className="text-xs text-indigo-600 hover:text-indigo-700">編輯</button>
           )}
         </td>
       )}

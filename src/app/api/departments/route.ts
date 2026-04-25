@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
 
   const sc = createServiceClient()
   const { data } = await sc.from('departments')
-    .select('id, name')
+    .select('id, name, parent_id')
     .eq('company_id', companyId)
     .eq('is_active', true)
     .order('sort_order')

@@ -32,7 +32,7 @@ export default async function OrganizationPage({
   if (!company) notFound()
 
   const { data: departments } = await sc.from('departments')
-    .select('id, name, manager_id, is_active')
+    .select('id, name, manager_id, is_active, parent_id')
     .eq('company_id', companyId)
     .order('sort_order')
 
@@ -150,9 +150,10 @@ export default async function OrganizationPage({
           </CardHeader>
           <DepartmentManager
             companyId={companyId}
-            departments={(departments ?? []).map((d) => ({
+            departments={(departments ?? []).map(d => ({
               ...d,
               sort_order: 0,
+              parent_id: d.parent_id ?? null,
               employeeCount: (byDept[d.id] ?? []).length,
             }))}
             people={(employees ?? []).map((e) => ({
