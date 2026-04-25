@@ -81,6 +81,10 @@ function extractValue(raw: unknown): unknown {
 export function JobAnalysisForm({ entryId, companyId, employeeName, fields, values, isConsultant, readOnly = false }: Props) {
   const router = useRouter()
   const [submitPending, startSubmitTransition] = useTransition()
+  const [pendingSaves, setPendingSaves] = useState(0)
+
+  const onSaveStart = useCallback(() => setPendingSaves(n => n + 1), [])
+  const onSaveEnd = useCallback(() => setPendingSaves(n => Math.max(0, n - 1)), [])
 
   // Build a map: field_name -> { valueId, value }
   const valuesMap = useRef<Record<string, { valueId: string; value: unknown }>>({})
@@ -116,6 +120,8 @@ export function JobAnalysisForm({ entryId, companyId, employeeName, fields, valu
           companyId={companyId}
           readOnly={readOnly}
           employeeName={employeeName}
+          onSaveStart={onSaveStart}
+          onSaveEnd={onSaveEnd}
         />
       ))}
 
@@ -142,11 +148,18 @@ export function JobAnalysisForm({ entryId, companyId, employeeName, fields, valu
       {/* Save + Submit */}
       {!readOnly && (
         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-          <p className="text-xs text-gray-400">編輯時自動儲存</p>
+          {pendingSaves > 0 ? (
+            <p className="text-xs text-blue-500 flex items-center gap-1">
+              <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+              儲存中...
+            </p>
+          ) : (
+            <p className="text-xs text-green-600">✓ 已儲存至雲端</p>
+          )}
           <div className="flex gap-3">
-            <Button variant="ghost" onClick={() => router.refresh()}>
-              已儲存 ✓
-            </Button>
             <Button variant="primary" loading={submitPending} onClick={handleSubmit}>
               送出審閱
             </Button>
@@ -168,6 +181,8 @@ function Stage1Section({
   companyId,
   readOnly,
   employeeName,
+  onSaveStart,
+  onSaveEnd,
 }: {
   field: TemplateField
   valueEntry?: { valueId: string; value: unknown }
@@ -175,6 +190,8 @@ function Stage1Section({
   companyId: string
   readOnly: boolean
   employeeName?: string
+  onSaveStart?: () => void
+  onSaveEnd?: () => void
 }) {
   const opts = field.options as FieldOptions | null
   const label = field.display_name || field.standard_name || field.field_name
@@ -189,6 +206,8 @@ function Stage1Section({
         companyId={companyId}
         readOnly={readOnly}
         employeeName={employeeName}
+        onSaveStart={onSaveStart}
+        onSaveEnd={onSaveEnd}
       />
     )
   }
@@ -203,6 +222,8 @@ function Stage1Section({
         entryId={entryId}
         companyId={companyId}
         readOnly={readOnly}
+        onSaveStart={onSaveStart}
+        onSaveEnd={onSaveEnd}
       />
     )
   }
@@ -225,6 +246,8 @@ function BasicInfoSection({
   companyId,
   readOnly,
   employeeName,
+  onSaveStart,
+  onSaveEnd,
 }: {
   label: string
   description: string | null
@@ -233,6 +256,8 @@ function BasicInfoSection({
   companyId: string
   readOnly: boolean
   employeeName?: string
+  onSaveStart?: () => void
+  onSaveEnd?: () => void
 }) {
   const raw = (valueEntry?.value ?? {}) as Record<string, string>
   // 自動帶入分析人姓名（如果尚未填寫）
@@ -263,11 +288,13 @@ function BasicInfoSection({
       if (saveTimer.current) clearTimeout(saveTimer.current)
       saveTimer.current = setTimeout(async () => {
         setSaving(true)
+        onSaveStart?.()
         await updateFieldValue(valueEntry.valueId, { v: newData }, companyId)
         setSaving(false)
+        onSaveEnd?.()
       }, 600)
     },
-    [valueEntry?.valueId, companyId, readOnly]
+    [valueEntry?.valueId, companyId, readOnly, onSaveStart, onSaveEnd]
   )
 
   function handleChange(key: string, val: string) {
@@ -380,6 +407,8 @@ function JobAnalysisTableSection({
   entryId,
   companyId,
   readOnly,
+  onSaveStart,
+  onSaveEnd,
 }: {
   label: string
   description: string | null
@@ -388,6 +417,8 @@ function JobAnalysisTableSection({
   entryId: string
   companyId: string
   readOnly: boolean
+  onSaveStart?: () => void
+  onSaveEnd?: () => void
 }) {
   const [duties, setDuties] = useState<DutyWithTasks[]>(() => migrateToUnifiedFormat(valueEntry?.value))
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -419,14 +450,18 @@ function JobAnalysisTableSection({
       if (!valueEntry?.valueId || readOnly) return
       if (saveTimer.current) clearTimeout(saveTimer.current)
       if (immediate) {
+        onSaveStart?.()
         updateFieldValue(valueEntry.valueId, { v: next }, companyId, entryId)
+          .then(() => onSaveEnd?.())
       } else {
         saveTimer.current = setTimeout(async () => {
+          onSaveStart?.()
           await updateFieldValue(valueEntry.valueId, { v: next }, companyId, entryId)
+          onSaveEnd?.()
         }, 600)
       }
     },
-    [valueEntry?.valueId, companyId, entryId, readOnly]
+    [valueEntry?.valueId, companyId, entryId, readOnly, onSaveStart, onSaveEnd]
   )
 
   function update(next: DutyWithTasks[], immediate = false) {
