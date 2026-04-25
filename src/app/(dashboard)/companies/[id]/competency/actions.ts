@@ -139,7 +139,8 @@ export async function createFormEntry(
 export async function updateFieldValue(
   valueId: string,
   value: unknown,
-  companyId: string
+  companyId: string,
+  entryId?: string
 ) {
   const supabase = createServiceClient()
   const { error } = await supabase
@@ -149,6 +150,9 @@ export async function updateFieldValue(
 
   if (error) return { error: error.message }
   revalidatePath(`/companies/${companyId}/competency`)
+  if (entryId) {
+    revalidatePath(`/companies/${companyId}/competency/entries/${entryId}`)
+  }
 }
 
 /** 更新 entry 狀態 */

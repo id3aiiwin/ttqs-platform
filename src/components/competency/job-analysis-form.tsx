@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, useTransition } from 'react'
+import { useState, useCallback, useRef, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardHeader, CardBody } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -62,6 +62,7 @@ interface Props {
   readOnly?: boolean
 }
 
+
 /* ------------------------------------------------------------------ */
 /*  Helper: extract stored value from the {v: ...} wrapper or raw     */
 /* ------------------------------------------------------------------ */
@@ -111,6 +112,7 @@ export function JobAnalysisForm({ entryId, companyId, employeeName, fields, valu
           key={field.id}
           field={field}
           valueEntry={valuesMap.current[field.field_name]}
+          entryId={entryId}
           companyId={companyId}
           readOnly={readOnly}
           employeeName={employeeName}
@@ -162,12 +164,14 @@ export function JobAnalysisForm({ entryId, companyId, employeeName, fields, valu
 function Stage1Section({
   field,
   valueEntry,
+  entryId,
   companyId,
   readOnly,
   employeeName,
 }: {
   field: TemplateField
   valueEntry?: { valueId: string; value: unknown }
+  entryId: string
   companyId: string
   readOnly: boolean
   employeeName?: string
@@ -196,6 +200,7 @@ function Stage1Section({
         description={field.description}
         addLabel={opts?.add_label ?? '新增職責'}
         valueEntry={valueEntry}
+        entryId={entryId}
         companyId={companyId}
         readOnly={readOnly}
       />
@@ -372,6 +377,7 @@ function JobAnalysisTableSection({
   description,
   addLabel,
   valueEntry,
+  entryId,
   companyId,
   readOnly,
 }: {
@@ -379,55 +385,82 @@ function JobAnalysisTableSection({
   description: string | null
   addLabel: string
   valueEntry?: { valueId: string; value: unknown }
+  entryId: string
   companyId: string
   readOnly: boolean
 }) {
   const [duties, setDuties] = useState<DutyWithTasks[]>(() => migrateToUnifiedFormat(valueEntry?.value))
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Keep a ref to the latest duties so we can flush on unmount
+  const latestDutiesRef = useRef(duties)
+  useEffect(() => {
+    latestDutiesRef.current = duties
+  })
+
+  // Flush any pending debounced save when the component unmounts (e.g. navigation)
+  const saveContextRef = useRef({ valueId: valueEntry?.valueId, companyId, entryId, readOnly })
+  useEffect(() => {
+    saveContextRef.current = { valueId: valueEntry?.valueId, companyId, entryId, readOnly }
+  })
+  useEffect(() => {
+    return () => {
+      const { valueId, companyId: cid, entryId: eid, readOnly: ro } = saveContextRef.current
+      if (saveTimer.current && valueId && !ro) {
+        clearTimeout(saveTimer.current)
+        saveTimer.current = null
+        updateFieldValue(valueId, { v: latestDutiesRef.current }, cid, eid)
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const doSave = useCallback(
-    (next: DutyWithTasks[]) => {
+    (next: DutyWithTasks[], immediate = false) => {
       if (!valueEntry?.valueId || readOnly) return
       if (saveTimer.current) clearTimeout(saveTimer.current)
-      saveTimer.current = setTimeout(async () => {
-        await updateFieldValue(valueEntry.valueId, { v: next }, companyId)
-      }, 600)
+      if (immediate) {
+        updateFieldValue(valueEntry.valueId, { v: next }, companyId, entryId)
+      } else {
+        saveTimer.current = setTimeout(async () => {
+          await updateFieldValue(valueEntry.valueId, { v: next }, companyId, entryId)
+        }, 600)
+      }
     },
-    [valueEntry?.valueId, companyId, readOnly]
+    [valueEntry?.valueId, companyId, entryId, readOnly]
   )
 
-  function update(next: DutyWithTasks[]) {
+  function update(next: DutyWithTasks[], immediate = false) {
     setDuties(next)
-    doSave(next)
+    doSave(next, immediate)
   }
 
   function updateDutyName(di: number, name: string) {
     const next = [...duties]; next[di] = { ...next[di], duty_name: name }; update(next)
   }
   function addDuty() {
-    update([...duties, { duty_name: '', tasks: [{ task_name: '', metrics: [{ metric_name: '', standard_value: '' }], frequency: '', steps: [] }] }])
+    update([...duties, { duty_name: '', tasks: [{ task_name: '', metrics: [{ metric_name: '', standard_value: '' }], frequency: '', steps: [] }] }], true)
   }
   function removeDuty(di: number) {
-    if (duties.length <= 1) return; update(duties.filter((_, i) => i !== di))
+    if (duties.length <= 1) return; update(duties.filter((_, i) => i !== di), true)
   }
   function updateTaskName(di: number, ti: number, name: string) {
     const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], task_name: name }; next[di] = { ...next[di], tasks }; update(next)
   }
   function addTask(di: number) {
-    const next = [...duties]; next[di] = { ...next[di], tasks: [...next[di].tasks, { task_name: '', metrics: [{ metric_name: '', standard_value: '' }], frequency: '', steps: [] }] }; update(next)
+    const next = [...duties]; next[di] = { ...next[di], tasks: [...next[di].tasks, { task_name: '', metrics: [{ metric_name: '', standard_value: '' }], frequency: '', steps: [] }] }; update(next, true)
   }
   function removeTask(di: number, ti: number) {
     if (duties[di].tasks.length <= 1) return
-    const next = [...duties]; next[di] = { ...next[di], tasks: next[di].tasks.filter((_, i) => i !== ti) }; update(next)
+    const next = [...duties]; next[di] = { ...next[di], tasks: next[di].tasks.filter((_, i) => i !== ti) }; update(next, true)
   }
   function updateStep(di: number, ti: number, si: number, val: string) {
     const next = [...duties]; const tasks = [...next[di].tasks]; const steps = [...tasks[ti].steps]; steps[si] = val; tasks[ti] = { ...tasks[ti], steps }; next[di] = { ...next[di], tasks }; update(next)
   }
   function addStep(di: number, ti: number) {
-    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], steps: [...tasks[ti].steps, ''] }; next[di] = { ...next[di], tasks }; update(next)
+    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], steps: [...tasks[ti].steps, ''] }; next[di] = { ...next[di], tasks }; update(next, true)
   }
   function removeStep(di: number, ti: number, si: number) {
-    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], steps: tasks[ti].steps.filter((_, i) => i !== si) }; next[di] = { ...next[di], tasks }; update(next)
+    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], steps: tasks[ti].steps.filter((_, i) => i !== si) }; next[di] = { ...next[di], tasks }; update(next, true)
   }
   function moveStep(di: number, ti: number, si: number, dir: -1 | 1) {
     const steps = duties[di].tasks[ti].steps
@@ -435,20 +468,20 @@ function JobAnalysisTableSection({
     if (target < 0 || target >= steps.length) return
     const next = [...duties]; const tasks = [...next[di].tasks]; const reordered = [...tasks[ti].steps]
     ;[reordered[si], reordered[target]] = [reordered[target], reordered[si]]
-    tasks[ti] = { ...tasks[ti], steps: reordered }; next[di] = { ...next[di], tasks }; update(next)
+    tasks[ti] = { ...tasks[ti], steps: reordered }; next[di] = { ...next[di], tasks }; update(next, true)
   }
   function updateMetric(di: number, ti: number, mi: number, key: 'metric_name' | 'standard_value', val: string) {
     const next = [...duties]; const tasks = [...next[di].tasks]; const metrics = [...tasks[ti].metrics]; metrics[mi] = { ...metrics[mi], [key]: val }; tasks[ti] = { ...tasks[ti], metrics }; next[di] = { ...next[di], tasks }; update(next)
   }
   function addMetric(di: number, ti: number) {
-    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], metrics: [...tasks[ti].metrics, { metric_name: '', standard_value: '' }] }; next[di] = { ...next[di], tasks }; update(next)
+    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], metrics: [...tasks[ti].metrics, { metric_name: '', standard_value: '' }] }; next[di] = { ...next[di], tasks }; update(next, true)
   }
   function removeMetric(di: number, ti: number, mi: number) {
     if (duties[di].tasks[ti].metrics.length <= 1) return
-    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], metrics: tasks[ti].metrics.filter((_, i) => i !== mi) }; next[di] = { ...next[di], tasks }; update(next)
+    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], metrics: tasks[ti].metrics.filter((_, i) => i !== mi) }; next[di] = { ...next[di], tasks }; update(next, true)
   }
   function updateFrequency(di: number, ti: number, val: string) {
-    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], frequency: val }; next[di] = { ...next[di], tasks }; update(next)
+    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], frequency: val }; next[di] = { ...next[di], tasks }; update(next, true)
   }
 
   return (
