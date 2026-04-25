@@ -3,7 +3,10 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-function settingsPath(companyId: string) { return `/companies/${companyId}/settings` }
+function revalidateCompany(companyId: string) {
+  revalidatePath(`/companies/${companyId}/settings`)
+  revalidatePath(`/companies/${companyId}/organization`)
+}
 
 export async function addDepartment(companyId: string, name: string, managerId?: string) {
   const sc = createServiceClient()
@@ -21,7 +24,7 @@ export async function addDepartment(companyId: string, name: string, managerId?:
     sort_order: nextOrder,
   })
   if (error) return { error: error.message }
-  revalidatePath(settingsPath(companyId))
+  revalidateCompany(companyId)
 }
 
 export async function updateDepartment(
@@ -36,7 +39,7 @@ export async function updateDepartment(
 
   const { error } = await sc.from('departments').update(updates).eq('id', deptId)
   if (error) return { error: error.message }
-  revalidatePath(settingsPath(companyId))
+  revalidateCompany(companyId)
 }
 
 export async function deleteDepartment(deptId: string, companyId: string) {
@@ -51,5 +54,5 @@ export async function deleteDepartment(deptId: string, companyId: string) {
 
   const { error } = await sc.from('departments').delete().eq('id', deptId)
   if (error) return { error: error.message }
-  revalidatePath(settingsPath(companyId))
+  revalidateCompany(companyId)
 }

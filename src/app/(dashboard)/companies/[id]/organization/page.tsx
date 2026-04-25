@@ -8,6 +8,7 @@ import { OrgChart } from '@/components/organization/org-chart'
 import { EmployeeTable } from '@/components/organization/employee-table'
 import { OrgDeptFilter } from '@/components/organization/org-dept-filter'
 import { ImportEmployeesButton } from '@/components/company/import-employees-button'
+import { DepartmentManager } from '@/components/company/department-manager'
 import { getUser } from '@/lib/get-user'
 
 export const metadata = { title: '組織架構 | ID3A 管理平台' }
@@ -139,6 +140,28 @@ export default async function OrganizationPage({
           isConsultant={profile?.role === 'consultant'}
         />
       </Card>
+
+      {/* 部門管理（顧問才顯示） */}
+      {profile?.role === 'consultant' && (
+        <Card>
+          <CardHeader>
+            <p className="font-semibold text-gray-900">部門管理</p>
+            <p className="text-xs text-gray-400 mt-0.5">新增、編輯、停用或刪除部門，並指定部門主管</p>
+          </CardHeader>
+          <DepartmentManager
+            companyId={companyId}
+            departments={(departments ?? []).map((d) => ({
+              ...d,
+              sort_order: 0,
+              employeeCount: (byDept[d.id] ?? []).length,
+            }))}
+            people={(employees ?? []).map((e) => ({
+              id: e.id,
+              name: e.full_name || e.email,
+            }))}
+          />
+        </Card>
+      )}
     </div>
   )
 }
