@@ -26,9 +26,15 @@ export default async function AnalystCasesPage() {
     .select('id', { count: 'exact', head: true })
     .eq('analyst_id', user.id)
 
+  const typedCases = (cases ?? []).map(c => ({
+    ...c,
+    case_type: c.case_type ?? '',
+    status: c.status ?? '',
+  }))
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <AnalystDashboard profile={profile} cases={cases ?? []} caseCount={count ?? 0} />
+      <AnalystDashboard profile={profile} cases={typedCases} caseCount={count ?? 0} />
     </div>
   )
 }

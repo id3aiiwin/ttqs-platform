@@ -6,7 +6,8 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { TTQS_LEVELS } from '@/lib/utils'
-import type { Company } from '@/types/database'
+import type { Tables } from '@/types/database'
+type Company = Tables<'companies'>
 import { CopyInviteBtn } from '@/components/company/copy-invite-btn'
 import { getUser } from '@/lib/get-user'
 
