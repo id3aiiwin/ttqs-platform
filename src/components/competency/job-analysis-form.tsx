@@ -446,56 +446,50 @@ function JobAnalysisTableSection({
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const doSave = useCallback(
-    (next: DutyWithTasks[], immediate = false) => {
+    (next: DutyWithTasks[]) => {
       if (!valueEntry?.valueId || readOnly) return
       if (saveTimer.current) clearTimeout(saveTimer.current)
-      if (immediate) {
+      saveTimer.current = setTimeout(async () => {
         onSaveStart?.()
-        updateFieldValue(valueEntry.valueId, { v: next }, companyId, entryId)
-          .then(() => onSaveEnd?.())
-      } else {
-        saveTimer.current = setTimeout(async () => {
-          onSaveStart?.()
-          await updateFieldValue(valueEntry.valueId, { v: next }, companyId, entryId)
-          onSaveEnd?.()
-        }, 600)
-      }
+        await updateFieldValue(valueEntry.valueId, { v: next }, companyId, entryId)
+        onSaveEnd?.()
+      }, 600)
     },
     [valueEntry?.valueId, companyId, entryId, readOnly, onSaveStart, onSaveEnd]
   )
 
-  function update(next: DutyWithTasks[], immediate = false) {
+  function update(next: DutyWithTasks[]) {
     setDuties(next)
-    doSave(next, immediate)
+    doSave(next)
   }
 
   function updateDutyName(di: number, name: string) {
     const next = [...duties]; next[di] = { ...next[di], duty_name: name }; update(next)
   }
   function addDuty() {
-    update([...duties, { duty_name: '', tasks: [{ task_name: '', metrics: [{ metric_name: '', standard_value: '' }], frequency: '', steps: [] }] }], true)
+    update([...duties, { duty_name: '', tasks: [{ task_name: '', metrics: [{ metric_name: '', standard_value: '' }], frequency: '', steps: [] }] }])
   }
   function removeDuty(di: number) {
-    if (duties.length <= 1) return; update(duties.filter((_, i) => i !== di), true)
+    if (duties.length <= 1) return; update(duties.filter((_, i) => i !== di))
   }
   function updateTaskName(di: number, ti: number, name: string) {
     const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], task_name: name }; next[di] = { ...next[di], tasks }; update(next)
   }
   function addTask(di: number) {
-    const next = [...duties]; next[di] = { ...next[di], tasks: [...next[di].tasks, { task_name: '', metrics: [{ metric_name: '', standard_value: '' }], frequency: '', steps: [] }] }; update(next, true)
+    const next = [...duties]; next[di] = { ...next[di], tasks: [...next[di].tasks, { task_name: '', metrics: [{ metric_name: '', standard_value: '' }], frequency: '', steps: [] }] }; update(next)
   }
   function removeTask(di: number, ti: number) {
     if (duties[di].tasks.length <= 1) return
-    const next = [...duties]; next[di] = { ...next[di], tasks: next[di].tasks.filter((_, i) => i !== ti) }; update(next, true)
+    const next = [...duties]; next[di] = { ...next[di], tasks: next[di].tasks.filter((_, i) => i !== ti) }; update(next)
   }
   function updateStep(di: number, ti: number, si: number, val: string) {
     const next = [...duties]; const tasks = [...next[di].tasks]; const steps = [...tasks[ti].steps]; steps[si] = val; tasks[ti] = { ...tasks[ti], steps }; next[di] = { ...next[di], tasks }; update(next)
   }
   function addStep(di: number, ti: number) {
-    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], steps: [...tasks[ti].steps, ''] }; next[di] = { ...next[di], tasks }; update(next, true)
+    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], steps: [...tasks[ti].steps, ''] }; next[di] = { ...next[di], tasks }; update(next)
   }
   function removeStep(di: number, ti: number, si: number) {
-    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], steps: tasks[ti].steps.filter((_, i) => i !== si) }; next[di] = { ...next[di], tasks }; update(next, true)
+    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], steps: tasks[ti].steps.filter((_, i) => i !== si) }; next[di] = { ...next[di], tasks }; update(next)
   }
   function moveStep(di: number, ti: number, si: number, dir: -1 | 1) {
     const steps = duties[di].tasks[ti].steps
@@ -503,20 +497,20 @@ function JobAnalysisTableSection({
     if (target < 0 || target >= steps.length) return
     const next = [...duties]; const tasks = [...next[di].tasks]; const reordered = [...tasks[ti].steps]
     ;[reordered[si], reordered[target]] = [reordered[target], reordered[si]]
-    tasks[ti] = { ...tasks[ti], steps: reordered }; next[di] = { ...next[di], tasks }; update(next, true)
+    tasks[ti] = { ...tasks[ti], steps: reordered }; next[di] = { ...next[di], tasks }; update(next)
   }
   function updateMetric(di: number, ti: number, mi: number, key: 'metric_name' | 'standard_value', val: string) {
     const next = [...duties]; const tasks = [...next[di].tasks]; const metrics = [...tasks[ti].metrics]; metrics[mi] = { ...metrics[mi], [key]: val }; tasks[ti] = { ...tasks[ti], metrics }; next[di] = { ...next[di], tasks }; update(next)
   }
   function addMetric(di: number, ti: number) {
-    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], metrics: [...tasks[ti].metrics, { metric_name: '', standard_value: '' }] }; next[di] = { ...next[di], tasks }; update(next, true)
+    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], metrics: [...tasks[ti].metrics, { metric_name: '', standard_value: '' }] }; next[di] = { ...next[di], tasks }; update(next)
   }
   function removeMetric(di: number, ti: number, mi: number) {
     if (duties[di].tasks[ti].metrics.length <= 1) return
-    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], metrics: tasks[ti].metrics.filter((_, i) => i !== mi) }; next[di] = { ...next[di], tasks }; update(next, true)
+    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], metrics: tasks[ti].metrics.filter((_, i) => i !== mi) }; next[di] = { ...next[di], tasks }; update(next)
   }
   function updateFrequency(di: number, ti: number, val: string) {
-    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], frequency: val }; next[di] = { ...next[di], tasks }; update(next, true)
+    const next = [...duties]; const tasks = [...next[di].tasks]; tasks[ti] = { ...tasks[ti], frequency: val }; next[di] = { ...next[di], tasks }; update(next)
   }
 
   return (

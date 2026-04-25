@@ -3,6 +3,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { logAudit } from '@/lib/audit'
 
 type CompetencyFormType = 'job_analysis' | 'job_description' | 'competency_standard' | 'competency_assessment'
 
@@ -143,12 +144,45 @@ export async function updateFieldValue(
   entryId?: string
 ) {
   const supabase = createServiceClient()
+
+  // 讀取舊值，儲存至 audit log 供日後查詢
+  const { data: oldRow } = await supabase
+    .from('competency_form_entry_values')
+    .select('value, field_name, entry_id')
+    .eq('id', valueId)
+    .single()
+
   const { error } = await supabase
     .from('competency_form_entry_values')
     .update({ value: value as Record<string, unknown> })
     .eq('id', valueId)
 
   if (error) return { error: error.message }
+
+  // 取得目前使用者
+  const authClient = await createClient()
+  const { data: { user } } = await authClient.auth.getUser()
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name, email')
+    .eq('id', user?.id ?? '')
+    .maybeSingle()
+
+  // 非同步寫入 audit log（不阻塞回應）
+  logAudit({
+    userId: user?.id,
+    userName: profile?.full_name || profile?.email || user?.email,
+    action: 'update_field_value',
+    entityType: 'competency_form_entry_values',
+    entityId: valueId,
+    details: {
+      entry_id: entryId ?? oldRow?.entry_id,
+      field_name: oldRow?.field_name,
+      old_value: oldRow?.value,
+      new_value: value,
+    },
+  })
+
   revalidatePath(`/companies/${companyId}/competency`)
   if (entryId) {
     revalidatePath(`/companies/${companyId}/competency/entries/${entryId}`)
