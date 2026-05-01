@@ -94,11 +94,11 @@ export function LoginForm({ companyId, companyName }: { companyId?: string; comp
 
     if (mode === 'forgot') {
       try {
+        // 使用環境變數確保永遠指向 production URL，
+        // 避免 window.location.origin 在 preview 部署時不符合 Supabase 白名單
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          // 不帶 query string — Supabase Redirect URL 白名單以 path 比對，
-          // 帶 ?type=recovery 可能造成驗證失敗並回傳空 {} 錯誤。
-          // confirm 頁改用 onAuthStateChange PASSWORD_RECOVERY 事件偵測恢復流程。
-          redirectTo: `${window.location.origin}/auth/confirm`,
+          redirectTo: `${appUrl}/auth/confirm`,
         })
         if (error) {
           // Supabase 在 rate-limit 或白名單設定問題時回傳空物件 {}
