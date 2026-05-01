@@ -10,10 +10,20 @@ function AuthConfirmInner() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    async function handleAuth() {
-      const supabase = createClient()
+    const supabase = createClient()
+    let recoveryRedirected = false
 
-      // Check for hash fragment (Supabase email links use this)
+    // PASSWORD_RECOVERY 是最可靠的偵測方式，不依賴 URL 的 type 參數。
+    // 必須在 exchangeCodeForSession / setSession 之前設定好 listener。
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        recoveryRedirected = true
+        router.push('/auth/reset-password')
+      }
+    })
+
+    async function handleAuth() {
+      // Check for hash fragment (Supabase implicit flow)
       const hash = window.location.hash
       if (hash) {
         const params = new URLSearchParams(hash.substring(1))
@@ -32,51 +42,34 @@ function AuthConfirmInner() {
             return
           }
 
-          if (type === 'recovery') {
-            router.push('/auth/reset-password')
-            return
+          // onAuthStateChange PASSWORD_RECOVERY 會處理重設密碼的跳轉；
+          // 非 recovery 的情況直接送去 dashboard
+          if (type !== 'recovery') {
+            router.push('/dashboard')
           }
-
-          router.push('/dashboard')
           return
         }
       }
 
-      // Check for code in search params
+      // Check for code in search params (PKCE flow)
       const code = searchParams.get('code')
-      const type = searchParams.get('type')
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (error) {
-          // 若已有 session（例如 code 已被使用過但 session 還在），仍可進行重設
+          // code 已被使用過但 session 還在 → 讓 onAuthStateChange 處理
           const { data: { session } } = await supabase.auth.getSession()
-          if (session && type === 'recovery') {
-            router.push('/auth/reset-password')
-            return
-          }
+          if (session) return
           setError(`${error.message}（連結可能已過期或被使用過，請重新申請）`)
           return
         }
-
-        if (type === 'recovery') {
-          router.push('/auth/reset-password')
-          return
+        // onAuthStateChange 如已觸發 PASSWORD_RECOVERY 則不再跳轉 dashboard
+        if (!recoveryRedirected) {
+          router.push('/dashboard')
         }
-
-        router.push('/dashboard')
         return
       }
 
-      // 無 code 但已有 session 且是 recovery → 直接送去重設密碼
-      if (type === 'recovery') {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session) {
-          router.push('/auth/reset-password')
-          return
-        }
-      }
-
-      // Try to get existing session
+      // 無 code — 檢查現有 session
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
         router.push('/dashboard')
@@ -87,6 +80,8 @@ function AuthConfirmInner() {
     }
 
     handleAuth()
+
+    return () => subscription.unsubscribe()
   }, [router, searchParams])
 
   if (error) {

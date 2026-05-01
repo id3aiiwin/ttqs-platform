@@ -95,10 +95,19 @@ export function LoginForm({ companyId, companyName }: { companyId?: string; comp
     if (mode === 'forgot') {
       try {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth/confirm?type=recovery`,
+          // 不帶 query string — Supabase Redirect URL 白名單以 path 比對，
+          // 帶 ?type=recovery 可能造成驗證失敗並回傳空 {} 錯誤。
+          // confirm 頁改用 onAuthStateChange PASSWORD_RECOVERY 事件偵測恢復流程。
+          redirectTo: `${window.location.origin}/auth/confirm`,
         })
         if (error) {
-          setError(error.message)
+          // Supabase 在 rate-limit 或白名單設定問題時回傳空物件 {}
+          const msg = error.message
+          if (!msg || msg === '{}' || msg === 'null' || msg.trim() === '') {
+            setError('發送失敗，請確認信箱是否正確，或稍後再試（可能已達每日發送上限）。')
+          } else {
+            setError(msg)
+          }
         } else {
           setSuccess('密碼重設信已發送，請查看您的信箱。')
         }
