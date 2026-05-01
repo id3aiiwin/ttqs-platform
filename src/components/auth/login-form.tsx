@@ -101,14 +101,14 @@ export function LoginForm({ companyId, companyName }: { companyId?: string; comp
           redirectTo: `${appUrl}/auth/confirm`,
         })
         if (error) {
-          // 顯示完整錯誤訊息供診斷（包含 HTTP status）
           const msg = error.message
-          const status = (error as unknown as { status?: number }).status ?? '?'
-          console.error('[resetPasswordForEmail] error:', error)
-          if (!msg || msg === '{}' || msg === 'null' || msg.trim() === '') {
-            setError(`發送失敗（錯誤碼 ${status}）。請截圖此畫面，或開啟瀏覽器 Console 查看詳情。`)
+          const status = (error as unknown as { status?: number }).status
+          if (status === 504 || status === 502 || status === 503) {
+            setError('郵件服務暫時無法使用，請稍後再試，或聯絡系統管理員。')
+          } else if (!msg || msg === '{}' || msg === 'null' || msg.trim() === '') {
+            setError('發送失敗，請確認信箱是否正確，或稍後再試。')
           } else {
-            setError(`${msg}（${status}）`)
+            setError(msg)
           }
         } else {
           setSuccess('密碼重設信已發送，請查看您的信箱。')
