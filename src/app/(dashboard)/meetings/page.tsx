@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { MeetingFilter } from '@/components/meeting/meeting-filter'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '會議記錄 | ID3A 管理平台' }
+export const metadata = { title: '會議記錄 | 人才發展管理系統' }
 
 const TYPE_LABELS: Record<string, string> = { onsite: '現場', online: '視訊', phone: '電話' }
 

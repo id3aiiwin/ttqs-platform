@@ -3,7 +3,7 @@ import { createCompany } from '../actions'
 import { CompanyForm } from '@/components/company/company-form'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
 
-export const metadata = { title: '新增企業 | ID3A 管理平台' }
+export const metadata = { title: '新增企業 | 人才發展管理系統' }
 
 export default function NewCompanyPage() {
   return (

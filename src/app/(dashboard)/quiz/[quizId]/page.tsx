@@ -4,7 +4,7 @@ import { getProfile } from '@/lib/get-profile'
 import { QuizTakeClient } from './quiz-take-client'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '作答測驗 | ID3A 管理平台' }
+export const metadata = { title: '作答測驗 | 人才發展管理系統' }
 
 export default async function QuizTakePage({ params }: { params: Promise<{ quizId: string }> }) {
   const { quizId } = await params

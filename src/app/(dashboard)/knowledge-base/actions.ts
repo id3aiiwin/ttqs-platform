@@ -8,16 +8,20 @@ export async function createTemplate(formData: FormData) {
   const { data: { user } } = await authClient.auth.getUser()
   const sc = createServiceClient()
 
+  const category = (formData.get('category') as string) || 'ttqs'
+  const isTtqs = category === 'ttqs'
+
   const { error } = await sc.from('knowledge_base_templates').insert({
     name: formData.get('name') as string,
-    doc_number_format: (formData.get('doc_number_format') as string) || null,
-    pddro_phase: (formData.get('pddro_phase') as string) || 'general',
+    category,
+    doc_number_format: isTtqs ? ((formData.get('doc_number_format') as string) || null) : null,
+    pddro_phase: isTtqs ? ((formData.get('pddro_phase') as string) || 'general') : 'general',
     document_type: (formData.get('document_type') as string) || 'tier_document',
-    tier: formData.get('tier') ? Number(formData.get('tier')) : null,
+    tier: isTtqs && formData.get('tier') ? Number(formData.get('tier')) : null,
     version: (formData.get('version') as string) || null,
     description: (formData.get('description') as string) || null,
     file_url: (formData.get('file_url') as string) || null,
-    ttqs_indicator: (formData.get('ttqs_indicator') as string) || null,
+    ttqs_indicator: isTtqs ? ((formData.get('ttqs_indicator') as string) || null) : null,
     access_level: (formData.get('access_level') as string) || 'all',
     created_by: user?.id ?? null,
   })

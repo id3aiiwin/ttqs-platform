@@ -11,7 +11,7 @@ import { ResetTemplatesButton } from '@/components/competency/reset-templates-bu
 import { CompetencyMatrix } from '@/components/competency/competency-matrix'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '職能管理 | ID3A 管理平台' }
+export const metadata = { title: '職能管理 | 人才發展管理系統' }
 
 const TABS = [
   { key: 'analysis', label: '工作分析' },
@@ -59,6 +59,10 @@ export default async function CompetencyPage({
   const profile = await getProfile(user.id)
   const isConsultant = profile?.role === 'consultant' || profile?.role === 'admin'
   const isEmployee = profile?.role === 'employee' || profile?.role === 'hr' || profile?.role === 'manager'
+
+  // 非顧問只能存取自己所屬企業
+  if (!isConsultant && !isEmployee) redirect('/dashboard')
+  if (isEmployee && !isConsultant && profile?.company_id !== id) redirect('/dashboard')
 
   const serviceClient = createServiceClient()
 

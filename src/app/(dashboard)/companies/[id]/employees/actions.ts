@@ -21,7 +21,7 @@ export async function addEmployee(
   // 建立 auth 帳號
   const { data: authData, error: authError } = await sc.auth.admin.createUser({
     email: data.email,
-    password: 'id3a',
+    password: '1234',
     email_confirm: true,
   })
 

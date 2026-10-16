@@ -6,7 +6,7 @@ import { CourseForm } from '@/components/course/course-form'
 import { createCourse } from '../actions'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '新增課程 | ID3A 管理平台' }
+export const metadata = { title: '新增課程 | 人才發展管理系統' }
 
 export default async function NewCoursePage({
   searchParams,

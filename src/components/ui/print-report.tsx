@@ -46,10 +46,10 @@ export function PrintReportButton({ title, subtitle, getContent }: PrintReportPr
         <div class="header">
           <h1>${title}</h1>
           ${subtitle ? `<div class="subtitle">${subtitle}</div>` : ''}
-          <div class="meta">ID3A 管理平台 · 產出日期：${dateStr}</div>
+          <div class="meta">人才發展管理系統 · 產出日期：${dateStr}</div>
         </div>
         ${content}
-        <div class="footer">ID3A 管理平台 · 此報告由系統自動產出</div>
+        <div class="footer">人才發展管理系統 · 此報告由系統自動產出</div>
       </body>
       </html>
     `)

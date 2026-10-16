@@ -235,7 +235,7 @@ function BatchImportModal({ companies, onClose, onDone }: {
               <p>必填：姓名、email</p>
               <p>角色：employee, manager, hr, instructor, supervisor, analyst, student, consultant, admin</p>
               <p>日期格式：YYYY-MM-DD</p>
-              <p>預設密碼：id3a</p>
+              <p>預設密碼：1234</p>
             </div>
           </div>
 

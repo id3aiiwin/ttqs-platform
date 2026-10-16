@@ -4,7 +4,7 @@ import { getProfile } from '@/lib/get-profile'
 import { TodosClient } from './todos-client'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '待辦事項 | ID3A 管理平台' }
+export const metadata = { title: '待辦事項 | 人才發展管理系統' }
 
 export default async function TodosPage() {
   const user = await getUser()

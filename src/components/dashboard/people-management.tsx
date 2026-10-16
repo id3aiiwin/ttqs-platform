@@ -773,7 +773,7 @@ function StudentCreateEditModal({ mode, person, companyMap, onClose }: {
 
           {mode === 'create' && (
             <p className="text-xs text-gray-400 bg-gray-50 rounded-lg p-3">
-              建立後系統會用此 Email 建立帳號（預設密碼 id3a）。學員未來用同一個 Email 註冊時，資料會自動帶入。
+              建立後系統會用此 Email 建立帳號（預設密碼 1234）。學員未來用同一個 Email 註冊時，資料會自動帶入。
             </p>
           )}
 

@@ -4,7 +4,7 @@ import { getProfile } from '@/lib/get-profile'
 import { InstructorDashboard } from '@/components/dashboard/instructor-dashboard'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '講師等級管理 | ID3A 管理平台' }
+export const metadata = { title: '講師等級管理 | 人才發展管理系統' }
 
 export default async function InstructorPromotionPage() {
   const user = await getUser()

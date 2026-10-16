@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { getProfile } from '@/lib/get-profile'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '職能管理 | ID3A 管理平台' }
+export const metadata = { title: '職能管理 | 人才發展管理系統' }
 
 export default async function MyCompetencyPage() {
   const user = await getUser()

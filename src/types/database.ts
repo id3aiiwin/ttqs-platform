@@ -2180,6 +2180,7 @@ export type Database = {
           access_level: string
           allowed_companies: Json
           auto_replace_rules: Json
+          category: string
           content: string | null
           created_at: string
           created_by: string | null
@@ -2203,6 +2204,7 @@ export type Database = {
           access_level?: string
           allowed_companies?: Json
           auto_replace_rules?: Json
+          category?: string
           content?: string | null
           created_at?: string
           created_by?: string | null
@@ -2226,6 +2228,7 @@ export type Database = {
           access_level?: string
           allowed_companies?: Json
           auto_replace_rules?: Json
+          category?: string
           content?: string | null
           created_at?: string
           created_by?: string | null

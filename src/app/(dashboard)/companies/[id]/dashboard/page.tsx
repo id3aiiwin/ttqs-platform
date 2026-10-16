@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { ExportButton } from '@/components/ui/export-button'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '企業儀表板 | ID3A 管理平台' }
+export const metadata = { title: '企業儀表板 | 人才發展管理系統' }
 
 function StatCard({ label, value, sub, color }: { label: string; value: number; sub?: string; color: string }) {
   return (

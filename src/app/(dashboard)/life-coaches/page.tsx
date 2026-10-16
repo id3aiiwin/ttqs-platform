@@ -4,7 +4,7 @@ import { getProfile } from '@/lib/get-profile'
 import { LifeCoachesClient } from './life-coaches-client'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '生命教練 | ID3A 管理平台' }
+export const metadata = { title: '生命教練 | 人才發展管理系統' }
 
 export default async function LifeCoachesPage() {
   const user = await getUser()

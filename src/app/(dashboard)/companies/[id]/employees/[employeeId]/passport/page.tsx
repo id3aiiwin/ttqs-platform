@@ -10,7 +10,7 @@ import { IdpList } from '@/components/passport/idp-list'
 import { CertificateList } from '@/components/passport/certificate-list'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '學習護照 | ID3A 管理平台' }
+export const metadata = { title: '學習護照 | 人才發展管理系統' }
 
 const TABS = [
   { key: 'training', label: '訓練記錄' },
@@ -33,7 +33,11 @@ export default async function PassportPage({
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)
-  const isConsultant = profile?.role === 'consultant'
+  const isConsultant = profile?.role === 'consultant' || profile?.role === 'admin'
+  const isSelf = user.id === employeeId
+  const isStaff = ['hr', 'manager', 'supervisor'].includes(profile?.role ?? '')
+  if (!isConsultant && !isSelf && !isStaff) redirect('/dashboard')
+  if (!isConsultant && !isSelf && profile?.company_id !== companyId) redirect('/dashboard')
 
   const sc = createServiceClient()
 

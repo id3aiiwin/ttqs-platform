@@ -468,42 +468,211 @@ function StatCard({ label, value, sub, color }: { label: string; value: number |
 function HrContent({ data }: { data: Record<string, unknown> }) {
   const employees = (data.hrEmployees ?? []) as { id: string; full_name: string | null; email: string }[]
   const courses = (data.hrCourses ?? []) as { id: string; title: string; status: string }[]
-  const documents = (data.hrDocuments ?? []) as { id: string; status: string }[]
+  const documents = (data.hrDocuments ?? []) as { id: string; title: string; status: string }[]
+  const company = data.hrCompany as { id: string; name: string } | null
+  const companyId = company?.id ?? ''
+
+  const STATUS_LABEL: Record<string, string> = {
+    draft: '草稿', planned: '規劃中', in_progress: '進行中', completed: '已完成', cancelled: '已取消',
+  }
+  const DOC_STATUS_LABEL: Record<string, string> = {
+    draft: '草稿', pending_review: '待簽核', approved: '已核准', rejected: '退回',
+  }
+
   return (
     <>
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <StatCard label="員工" value={employees.length} color="text-gray-900" />
-        <StatCard label="進行中" value={courses.filter(c => c.status === 'in_progress').length} color="text-yellow-600" />
-        <StatCard label="已完成" value={courses.filter(c => c.status === 'completed').length} color="text-green-600" />
-        <StatCard label="文件" value={`${documents.filter(d => d.status === 'approved').length}/${documents.length}`} color="text-indigo-600" />
+        <StatCard label="員工人數" value={employees.length} color="text-gray-900" />
+        <StatCard label="進行中課程" value={courses.filter(c => c.status === 'in_progress').length} color="text-yellow-600" />
+        <StatCard label="已完成課程" value={courses.filter(c => c.status === 'completed').length} color="text-green-600" />
+        <StatCard label="已核准文件" value={`${documents.filter(d => d.status === 'approved').length}/${documents.length}`} color="text-indigo-600" />
       </div>
+
+      {/* 快速入口 */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <Link href="/my-employees" className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50 transition-colors">
+          <span className="text-xl">👥</span>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">員工管理</p>
+            <p className="text-xs text-gray-400">{employees.length} 位成員</p>
+          </div>
+        </Link>
+        <Link href="/my-documents" className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50 transition-colors">
+          <span className="text-xl">📁</span>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">文件管理</p>
+            <p className="text-xs text-gray-400">{documents.length} 份文件</p>
+          </div>
+        </Link>
+        <Link href="/my-competency" className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50 transition-colors">
+          <span className="text-xl">📋</span>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">職能管理</p>
+            <p className="text-xs text-gray-400">表單與評核</p>
+          </div>
+        </Link>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
-        <Card><CardHeader><p className="font-semibold text-gray-900">最近課程</p></CardHeader>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-gray-900">最近課程</p>
+              <Link href="/courses" className="text-xs text-indigo-600 hover:text-indigo-700">全部</Link>
+            </div>
+          </CardHeader>
           <div className="divide-y divide-gray-100 max-h-60 overflow-y-auto">
-            {courses.slice(0, 5).map(c => <div key={c.id} className="px-6 py-2.5 text-sm text-gray-700">{c.title}</div>)}
+            {courses.length === 0
+              ? <p className="px-6 py-8 text-sm text-gray-400 text-center">尚無課程</p>
+              : courses.slice(0, 5).map(c => (
+                <Link key={c.id} href={`/courses?selected=${c.id}`}
+                  className="px-6 py-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <p className="text-sm text-gray-700 truncate">{c.title}</p>
+                  <span className="text-xs text-gray-400 ml-2 flex-shrink-0">{STATUS_LABEL[c.status] ?? c.status}</span>
+                </Link>
+              ))
+            }
           </div>
         </Card>
-        <Card><CardHeader><p className="font-semibold text-gray-900">員工</p></CardHeader>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-gray-900">員工清單</p>
+              {companyId && <Link href={`/companies/${companyId}/employees`} className="text-xs text-indigo-600 hover:text-indigo-700">管理</Link>}
+            </div>
+          </CardHeader>
           <div className="divide-y divide-gray-100 max-h-60 overflow-y-auto">
-            {employees.slice(0, 8).map(e => <div key={e.id} className="px-6 py-2 text-sm text-gray-700">{e.full_name || e.email}</div>)}
+            {employees.length === 0
+              ? <p className="px-6 py-8 text-sm text-gray-400 text-center">尚無員工</p>
+              : employees.slice(0, 8).map(e => (
+                <Link key={e.id} href={companyId ? `/companies/${companyId}/employees/${e.id}` : '#'}
+                  className="px-6 py-2 flex items-center gap-2 hover:bg-gray-50 transition-colors">
+                  <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                    <span className="text-[10px] font-semibold text-indigo-700">
+                      {(e.full_name || e.email).charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700 truncate">{e.full_name || e.email}</p>
+                </Link>
+              ))
+            }
           </div>
         </Card>
       </div>
+
+      {documents.length > 0 && (
+        <Card className="mt-4">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-gray-900">文件狀態</p>
+              {companyId && <Link href={`/companies/${companyId}/documents`} className="text-xs text-indigo-600 hover:text-indigo-700">全部</Link>}
+            </div>
+          </CardHeader>
+          <div className="divide-y divide-gray-100 max-h-48 overflow-y-auto">
+            {documents.slice(0, 6).map(d => (
+              <div key={d.id} className="px-6 py-2.5 flex items-center justify-between">
+                <p className="text-sm text-gray-700 truncate">{d.title}</p>
+                <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ml-2 ${
+                  d.status === 'approved' ? 'bg-green-100 text-green-700' :
+                  d.status === 'pending_review' ? 'bg-yellow-100 text-yellow-700' :
+                  'bg-gray-100 text-gray-500'
+                }`}>{DOC_STATUS_LABEL[d.status] ?? d.status}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
     </>
   )
 }
 
 function ManagerContent({ data }: { data: Record<string, unknown> }) {
   const employees = (data.managerEmployees ?? []) as { id: string; full_name: string | null; email: string }[]
+  const courses = (data.managerCourses ?? []) as { id: string; title: string; status: string; start_date: string | null; hours: number | null }[]
+  const companyId = (data.managerCompanyId as string) ?? ''
+
+  const STATUS_LABEL: Record<string, string> = {
+    draft: '草稿', planned: '規劃中', in_progress: '進行中', completed: '已完成', cancelled: '已取消',
+  }
+
+  const inProgress = courses.filter(c => c.status === 'in_progress').length
+  const completed = courses.filter(c => c.status === 'completed').length
+
   return (
     <>
-      <StatCard label="部門人數" value={employees.length} color="text-gray-900" />
-      <Card className="mt-4"><CardHeader><p className="font-semibold text-gray-900">部門成員</p></CardHeader>
-        <div className="divide-y divide-gray-100">
-          {employees.map(e => <div key={e.id} className="px-6 py-2.5 text-sm text-gray-700">{e.full_name || e.email}</div>)}
-          {employees.length === 0 && <p className="px-6 py-8 text-sm text-gray-400 text-center">尚無成員</p>}
-        </div>
-      </Card>
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <StatCard label="部門人數" value={employees.length} color="text-gray-900" />
+        <StatCard label="進行中課程" value={inProgress} color="text-yellow-600" />
+        <StatCard label="已完成課程" value={completed} color="text-green-600" />
+      </div>
+
+      {/* 快速入口 */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <Link href="/my-employees" className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50 transition-colors">
+          <span className="text-xl">👥</span>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">員工管理</p>
+            <p className="text-xs text-gray-400">{employees.length} 位成員</p>
+          </div>
+        </Link>
+        <Link href="/courses" className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50 transition-colors">
+          <span className="text-xl">📚</span>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">課程管理</p>
+            <p className="text-xs text-gray-400">{courses.length} 堂課程</p>
+          </div>
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-gray-900">部門成員</p>
+              {companyId && <Link href={`/companies/${companyId}/employees`} className="text-xs text-indigo-600 hover:text-indigo-700">管理</Link>}
+            </div>
+          </CardHeader>
+          <div className="divide-y divide-gray-100 max-h-60 overflow-y-auto">
+            {employees.length === 0
+              ? <p className="px-6 py-8 text-sm text-gray-400 text-center">尚無成員</p>
+              : employees.map(e => (
+                <Link key={e.id} href={companyId ? `/companies/${companyId}/employees/${e.id}` : '#'}
+                  className="px-6 py-2.5 flex items-center gap-2 hover:bg-gray-50 transition-colors">
+                  <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                    <span className="text-[10px] font-semibold text-amber-700">
+                      {(e.full_name || e.email).charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700 truncate">{e.full_name || e.email}</p>
+                </Link>
+              ))
+            }
+          </div>
+        </Card>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-gray-900">企業課程</p>
+              <Link href="/courses" className="text-xs text-indigo-600 hover:text-indigo-700">全部</Link>
+            </div>
+          </CardHeader>
+          <div className="divide-y divide-gray-100 max-h-60 overflow-y-auto">
+            {courses.length === 0
+              ? <p className="px-6 py-8 text-sm text-gray-400 text-center">尚無課程</p>
+              : courses.map(c => (
+                <Link key={c.id} href={`/courses?selected=${c.id}`}
+                  className="px-6 py-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div>
+                    <p className="text-sm text-gray-700 truncate">{c.title}</p>
+                    {c.start_date && <p className="text-xs text-gray-400">{c.start_date}</p>}
+                  </div>
+                  <span className="text-xs text-gray-400 ml-2 flex-shrink-0">{STATUS_LABEL[c.status] ?? c.status}</span>
+                </Link>
+              ))
+            }
+          </div>
+        </Card>
+      </div>
     </>
   )
 }

@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient, createClient } from '@/lib/supabase/server'
+
+async function requireAuth() {
+  const authClient = await createClient()
+  const { data: { user } } = await authClient.auth.getUser()
+  return user
+}
 
 export async function POST(request: NextRequest) {
+  const user = await requireAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const body = await request.json()
   const sc = createServiceClient()
 
@@ -17,6 +26,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const user = await requireAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const body = await request.json()
   const { id, ...updates } = body
   if (!id) return NextResponse.json({ error: 'missing id' }, { status: 400 })

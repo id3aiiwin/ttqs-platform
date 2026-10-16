@@ -7,7 +7,7 @@ import { DeleteCourseButton } from '@/components/course/delete-course-button'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '編輯課程 | ID3A 管理平台' }
+export const metadata = { title: '編輯課程 | 人才發展管理系統' }
 
 export default async function EditCoursePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params

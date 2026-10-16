@@ -6,7 +6,7 @@ import { Card, CardHeader } from '@/components/ui/card'
 import { CompetencyTemplateEditor } from '@/components/competency/competency-template-editor'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '職能表單模板 | ID3A 管理平台' }
+export const metadata = { title: '職能表單模板 | 人才發展管理系統' }
 
 const FORM_TABS = [
   { key: 'job_analysis', label: '工作分析' },
@@ -29,7 +29,8 @@ export default async function CompetencyTemplatesPage({
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)
-  const isConsultant = profile?.role === 'consultant'
+  const isConsultant = profile?.role === 'consultant' || profile?.role === 'admin'
+  if (!isConsultant) redirect('/dashboard')
 
   const serviceClient = createServiceClient()
 

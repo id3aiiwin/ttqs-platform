@@ -4,7 +4,7 @@ import { getProfile } from '@/lib/get-profile'
 import { CourseTemplatesClient } from './course-templates-client'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '課程模板 | ID3A 管理平台' }
+export const metadata = { title: '課程模板 | 人才發展管理系統' }
 
 export default async function CourseTemplatesPage() {
   const user = await getUser()

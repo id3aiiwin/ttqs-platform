@@ -4,7 +4,7 @@ import { getProfile } from '@/lib/get-profile'
 import { AuditLogClient } from './audit-log-client'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '操作紀錄 | ID3A 管理平台' }
+export const metadata = { title: '操作紀錄 | 人才發展管理系統' }
 
 export default async function AuditLogPage() {
   const user = await getUser()

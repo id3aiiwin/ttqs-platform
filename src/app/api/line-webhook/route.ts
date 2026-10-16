@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
         await replyMessage(event.replyToken, [
           {
             type: 'text',
-            text: `歡迎加入 ID3A 管理平台！\n\n請點擊以下連結綁定您的帳號，即可接收課程通知：\n\n${baseUrl}/line-bindback?uid=${userId}\n\n綁定後即可收到上課通知、問卷提醒等訊息。`,
+            text: `歡迎加入 人才發展管理系統！\n\n請點擊以下連結綁定您的帳號，即可接收課程通知：\n\n${baseUrl}/line-bindback?uid=${userId}\n\n綁定後即可收到上課通知、問卷提醒等訊息。`,
           },
         ])
       }
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
           await replyMessage(event.replyToken, [
             {
               type: 'text',
-              text: `請點擊以下連結綁定您的 ID3A 帳號：\n\n${baseUrl}/line-bindback?uid=${userId}\n\n綁定完成後即可接收課程通知。`,
+              text: `請點擊以下連結綁定您的帳號：\n\n${baseUrl}/line-bindback?uid=${userId}\n\n綁定完成後即可接收課程通知。`,
             },
           ])
         }

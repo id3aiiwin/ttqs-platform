@@ -7,7 +7,7 @@ import { CompanyTemplateEditor } from '@/components/company/company-template-edi
 import { InitTemplatesButton } from '@/components/company/init-templates-button'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '表單模板設定 | ID3A 管理平台' }
+export const metadata = { title: '表單模板設定 | 人才發展管理系統' }
 
 export default async function TemplatesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params

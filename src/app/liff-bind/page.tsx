@@ -1,6 +1,6 @@
 import { LiffBindFlow } from './liff-bind-flow'
 
-export const metadata = { title: 'LINE 快速綁定 | ID3A 管理平台' }
+export const metadata = { title: 'LINE 快速綁定 | 人才發展管理系統' }
 
 export default async function LiffBindPage({
   searchParams,

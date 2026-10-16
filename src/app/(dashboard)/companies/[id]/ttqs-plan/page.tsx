@@ -10,7 +10,7 @@ import { YearSelector } from '@/components/ttqs-plan/year-selector'
 import { PlanActions } from '@/components/ttqs-plan/plan-actions'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: 'TTQS 指標填寫 | ID3A 管理平台' }
+export const metadata = { title: 'TTQS 指標填寫 | 人才發展管理系統' }
 
 const PLAN_STATUS: Record<string, { label: string; variant: 'default' | 'info' | 'warning' | 'success' }> = {
   draft: { label: '草稿', variant: 'default' }, submitted: { label: '已送審', variant: 'info' },
@@ -34,6 +34,7 @@ export default async function TtqsPlanPage({
   const profile = await getProfile(user.id)
   const isConsultant = profile?.role === 'consultant'
   if (!isConsultant && profile?.role !== 'hr') redirect('/dashboard')
+  if (!isConsultant && profile?.company_id !== companyId) redirect('/dashboard')
 
   const sc = createServiceClient()
   const { data: company } = await sc.from('companies').select('id, name').eq('id', companyId).single()

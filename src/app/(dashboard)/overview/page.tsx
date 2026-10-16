@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { OverviewFilter } from '@/components/overview/overview-filter'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '企業總表 | ID3A 管理平台' }
+export const metadata = { title: '企業總表 | 人才發展管理系統' }
 
 const CONTRACT_STATUS: Record<string, { label: string; variant: 'default' | 'info' | 'success' | 'danger' }> = {
   negotiating: { label: '洽談中', variant: 'default' },

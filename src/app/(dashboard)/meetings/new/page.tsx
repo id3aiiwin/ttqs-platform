@@ -6,7 +6,7 @@ import { Card, CardHeader, CardBody } from '@/components/ui/card'
 import { MeetingForm } from '@/components/meeting/meeting-form'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '新增會議 | ID3A 管理平台' }
+export const metadata = { title: '新增會議 | 人才發展管理系統' }
 
 export default async function NewMeetingPage({
   searchParams,

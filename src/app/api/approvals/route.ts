@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, createClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
+  const authClient = await createClient()
+  const { data: { user } } = await authClient.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const body = await request.json()
   const { action } = body
   const sc = createServiceClient()
@@ -36,9 +40,6 @@ export async function POST(request: NextRequest) {
   // ===== 發起簽核（文件或會議） =====
   if (action === 'initiate') {
     const { document_id, meeting_id, flow_id, company_id } = body
-
-    const authClient = await createClient()
-    const { data: { user } } = await authClient.auth.getUser()
 
     // 取得流程定義
     let flow

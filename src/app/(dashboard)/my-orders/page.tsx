@@ -5,7 +5,7 @@ import { Card, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '我的訂單 | ID3A 管理平台' }
+export const metadata = { title: '我的訂單 | 人才發展管理系統' }
 
 const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'warning' | 'success' | 'danger' }> = {
   pending: { label: '待確認付款', variant: 'warning' },

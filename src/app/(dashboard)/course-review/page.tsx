@@ -4,7 +4,7 @@ import { getProfile } from '@/lib/get-profile'
 import { CourseReviewClient } from './course-review-client'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '課程審核 | ID3A 管理平台' }
+export const metadata = { title: '課程審核 | 人才發展管理系統' }
 
 export default async function CourseReviewPage() {
   const user = await getUser()

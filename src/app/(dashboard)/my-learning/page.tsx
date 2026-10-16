@@ -8,7 +8,7 @@ import { QuizPlayer } from '@/components/product-player/quiz-player'
 import { EbookReader } from '@/components/product-player/ebook-reader'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '我的學習 | ID3A 管理平台' }
+export const metadata = { title: '我的學習 | 人才發展管理系統' }
 
 export default async function MyLearningPage({
   searchParams,

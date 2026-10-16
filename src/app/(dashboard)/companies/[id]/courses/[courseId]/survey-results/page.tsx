@@ -10,7 +10,7 @@ import {
 } from '@/lib/survey-questions'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '問卷統計 | ID3A 管理平台' }
+export const metadata = { title: '問卷統計 | 人才發展管理系統' }
 
 /** 原始平均分（1-5） */
 function avgScore(responses: Record<string, unknown>[], key: string, idx: number): number {
@@ -47,7 +47,8 @@ export default async function SurveyResultsPage({ params }: { params: Promise<{ 
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)
-  if (profile?.role !== 'consultant' && profile?.role !== 'hr') redirect('/dashboard')
+  if (profile?.role !== 'consultant' && profile?.role !== 'admin' && profile?.role !== 'hr') redirect('/dashboard')
+  if (profile?.role === 'hr' && profile?.company_id !== companyId) redirect('/dashboard')
 
   const sc = createServiceClient()
   const { data: course } = await sc.from('courses').select('title').eq('id', courseId).single()

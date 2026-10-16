@@ -320,7 +320,7 @@ export function LiffBindFlow({ courseId, companyId, profileId }: Props) {
           </div>
         )}
 
-        <p className="text-center text-xs text-gray-400 mt-6">ID3A 管理平台</p>
+        <p className="text-center text-xs text-gray-400 mt-6">人才發展管理系統</p>
       </div>
     </div>
   )

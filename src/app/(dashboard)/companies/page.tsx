@@ -11,7 +11,7 @@ type Company = Tables<'companies'>
 import { CopyInviteBtn } from '@/components/company/copy-invite-btn'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '企業管理 | ID3A 管理平台' }
+export const metadata = { title: '企業管理 | 人才發展管理系統' }
 
 function statusBadge(status: Company['status']) {
   if (status === 'active') return <Badge variant="success">輔導中</Badge>

@@ -1,6 +1,6 @@
 import { LineBindClient } from './line-bind-client'
 
-export const metadata = { title: 'LINE 帳號綁定 | ID3A 管理平台' }
+export const metadata = { title: 'LINE 帳號綁定 | 人才發展管理系統' }
 
 export default async function LineBindPage({
   searchParams,

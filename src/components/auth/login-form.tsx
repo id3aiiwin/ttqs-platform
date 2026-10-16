@@ -94,22 +94,14 @@ export function LoginForm({ companyId, companyName }: { companyId?: string; comp
 
     if (mode === 'forgot') {
       try {
-        // 使用環境變數確保永遠指向 production URL，
-        // 避免 window.location.origin 在 preview 部署時不符合 Supabase 白名單
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${appUrl}/auth/confirm`,
+        const res = await fetch('/api/auth/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
         })
-        if (error) {
-          const msg = error.message
-          const status = (error as unknown as { status?: number }).status
-          if (status === 504 || status === 502 || status === 503) {
-            setError('郵件服務暫時無法使用，請稍後再試，或聯絡系統管理員。')
-          } else if (!msg || msg === '{}' || msg === 'null' || msg.trim() === '') {
-            setError('發送失敗，請確認信箱是否正確，或稍後再試。')
-          } else {
-            setError(msg)
-          }
+        const data = await res.json()
+        if (!res.ok) {
+          setError(data.error || '發送失敗，請稍後再試。')
         } else {
           setSuccess('密碼重設信已發送，請查看您的信箱。')
         }

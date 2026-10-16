@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { ProposalForm } from '@/components/company/proposal-form'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '年度提案 | ID3A 管理平台' }
+export const metadata = { title: '年度提案 | 人才發展管理系統' }
 
 const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'info' | 'warning' | 'success' | 'danger' }> = {
   planning: { label: '規劃中', variant: 'default' },
@@ -32,7 +32,9 @@ export default async function ProposalsPage({
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)
-  const isConsultant = profile?.role === 'consultant'
+  const isConsultant = profile?.role === 'consultant' || profile?.role === 'admin'
+  if (!isConsultant && !['hr', 'manager'].includes(profile?.role ?? '')) redirect('/dashboard')
+  if (!isConsultant && profile?.company_id !== id) redirect('/dashboard')
 
   const sc = createServiceClient()
   const { data: company } = await sc.from('companies').select('id, name').eq('id', id).single()

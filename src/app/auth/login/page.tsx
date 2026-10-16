@@ -1,7 +1,7 @@
 import { LoginForm } from '@/components/auth/login-form'
 import { createServiceClient } from '@/lib/supabase/server'
 
-export const metadata = { title: '登入 | ID3A 管理平台' }
+export const metadata = { title: '登入 | 人才發展管理系統' }
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ company?: string }> }) {
   const { company: companyId } = await searchParams
@@ -41,35 +41,35 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
               </svg>
             </div>
             <div>
-              <h2 className="text-white text-2xl font-bold tracking-wide">ID3A</h2>
-              <p className="text-indigo-300/80 text-sm tracking-widest">MANAGEMENT PLATFORM</p>
+              <h2 className="text-white text-xl font-bold tracking-wide">人才發展管理系統</h2>
+              <p className="text-indigo-300/60 text-xs tracking-widest">TALENT DEVELOPMENT PLATFORM</p>
             </div>
           </div>
 
           {/* 主文案 */}
           <div className="max-w-lg">
             <p className="text-indigo-300/60 text-sm font-medium tracking-[0.3em] uppercase mb-4">
-              人才發展 × 訓練品質 × 天賦評量
+              人才發展 × 訓練品質 × 職能管理
             </p>
             <h1 className="text-5xl font-bold text-white leading-[1.15] mb-8">
-              打造企業<br />
+              系統化管理<br />
               <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent">
-                人才競爭力
+                企業訓練品質
               </span>
             </h1>
             <p className="text-lg text-indigo-200/70 leading-relaxed mb-12">
-              從天賦評量洞察潛能、TTQS 確保訓練品質、<br />
-              到講師認證與績效追蹤 —— 一站式管理平台，<br />
-              讓每一次訓練都產生可衡量的價值。
+              從課程規劃到成效追蹤，涵蓋 TTQS 指標管理、<br />
+              四階文件建檔、職能落差分析 —— 一站式平台，<br />
+              讓每一次訓練投資產生可衡量的回報。
             </p>
 
             {/* 功能亮點 */}
             <div className="grid grid-cols-2 gap-4">
               {[
-                { icon: '🧠', title: '天賦評量', desc: '10 大腦驅力分析，精準識別人才潛能' },
-                { icon: '📋', title: 'TTQS 合規', desc: '22 項指標管理，四階文件完整建檔' },
-                { icon: '🎓', title: '講師認證', desc: '四級晉升制度，培養專業教學團隊' },
-                { icon: '📊', title: '數據驅動', desc: '滿意度追蹤、營收分析、一目了然' },
+                { icon: '📋', title: 'TTQS 指標', desc: '19 項指標管理，系統化評核訓練品質' },
+                { icon: '📁', title: '四階文件', desc: '管理手冊到表單，文件版控一目了然' },
+                { icon: '🎯', title: '職能管理', desc: '職能落差分析，精準規劃發展方向' },
+                { icon: '📊', title: '成效追蹤', desc: '滿意度問卷、訓練紀錄、完整留存' },
               ].map((item, i) => (
                 <div key={i} className="group p-4 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/10 transition-all duration-300">
                   <div className="text-2xl mb-2">{item.icon}</div>
@@ -90,7 +90,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
               ))}
             </div>
             <p className="text-indigo-300/40 text-xs">
-              已有超過 50 家企業信賴使用
+              企業人才發展的數位化夥伴
             </p>
           </div>
         </div>
@@ -107,14 +107,14 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                   d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">ID3A 管理平台</h1>
-            <p className="text-gray-400 text-sm mt-1">人才發展 × 訓練品質 × 天賦評量</p>
+            <h1 className="text-2xl font-bold text-gray-900">人才發展管理系統</h1>
+            <p className="text-gray-400 text-sm mt-1">人才發展 × 訓練品質 × 職能管理</p>
           </div>
 
           {/* Desktop heading */}
           <div className="hidden lg:block mb-8">
             <h2 className="text-2xl font-bold text-gray-900">歡迎回來</h2>
-            <p className="text-gray-500 mt-1.5">登入 ID3A 管理平台</p>
+            <p className="text-gray-500 mt-1.5">登入人才發展管理系統</p>
           </div>
 
           <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/60 border border-gray-100 p-8">
@@ -123,10 +123,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
           <div className="text-center mt-8">
             <p className="text-xs text-gray-400">
-              社團法人國際評量應用發展協會
-            </p>
-            <p className="text-[10px] text-gray-300 mt-1">
-              ID3A — International Development of 3 Assessments Association
+              人才發展管理系統
             </p>
           </div>
         </div>

@@ -53,7 +53,15 @@ export async function updateSession(request: NextRequest) {
 
     return supabaseResponse
   } catch {
-    // Supabase 連線失敗時放行，讓頁面層處理 auth
+    // Supabase 連線失敗：受保護頁面導向登入，auth/public 頁面放行
+    const pathname = request.nextUrl.pathname
+    const isAuthPage = pathname.startsWith('/auth')
+    const isPublicPage = pathname === '/' || pathname.startsWith('/line-bindback') || pathname.startsWith('/api/line-webhook') || pathname.startsWith('/api/line-bind')
+    if (!isAuthPage && !isPublicPage) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/auth/login'
+      return NextResponse.redirect(url)
+    }
     return supabaseResponse
   }
 }

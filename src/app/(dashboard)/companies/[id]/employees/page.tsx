@@ -5,7 +5,7 @@ import { getProfile } from '@/lib/get-profile'
 import { getUser } from '@/lib/get-user'
 import { EmployeesClient } from './employees-client'
 
-export const metadata = { title: '員工管理 | ID3A 管理平台' }
+export const metadata = { title: '員工管理 | 人才發展管理系統' }
 
 export default async function EmployeesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: companyId } = await params
@@ -15,6 +15,9 @@ export default async function EmployeesPage({ params }: { params: Promise<{ id: 
   const profile = await getProfile(user.id)
   if (!profile || !['consultant', 'admin', 'hr', 'manager'].includes(profile.role)) redirect('/dashboard')
   const isConsultant = profile.role === 'consultant' || profile.role === 'admin'
+
+  // HR / Manager 只能存取自己所屬企業
+  if (!isConsultant && profile.company_id !== companyId) redirect('/dashboard')
 
   const sc = createServiceClient()
 

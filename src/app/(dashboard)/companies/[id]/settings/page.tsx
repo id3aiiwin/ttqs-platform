@@ -14,7 +14,7 @@ import { AnnualSettingsForm } from '@/components/company/annual-settings-form'
 import { OrgChartUpload } from '@/components/company/org-chart-upload'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '企業設定 | ID3A 管理平台' }
+export const metadata = { title: '企業設定 | 人才發展管理系統' }
 
 export default async function CompanySettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params

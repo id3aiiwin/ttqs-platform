@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { ProductManagementClient } from './product-management-client'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '產品管理 | ID3A 管理平台' }
+export const metadata = { title: '產品管理 | 人才發展管理系統' }
 
 export default async function ProductManagementPage() {
   const user = await getUser()

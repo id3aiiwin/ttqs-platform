@@ -4,7 +4,7 @@ import { getProfile } from '@/lib/get-profile'
 import { NotificationsClient } from './notifications-client'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '通知中心 | ID3A 管理平台' }
+export const metadata = { title: '通知中心 | 人才發展管理系統' }
 
 export default async function NotificationsPage() {
   const user = await getUser()

@@ -4,7 +4,7 @@ import { getProfile } from '@/lib/get-profile'
 import { UnifiedDashboard } from '@/components/dashboard/unified-dashboard'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '儀表板 | ID3A 管理平台' }
+export const metadata = { title: '儀表板 | 人才發展管理系統' }
 
 export default async function DashboardPage() {
   const user = await getUser()
@@ -149,11 +149,15 @@ export default async function DashboardPage() {
 
   // ===== manager =====
   if (roles.includes('manager') && profile.company_id) {
-    const [companyRes, deptEmployeesRes] = await Promise.all([
-      sc.from('companies').select('name').eq('id', profile.company_id).single(),
+    const [companyRes, deptEmployeesRes, companyCoursesRes] = await Promise.all([
+      sc.from('companies').select('id, name').eq('id', profile.company_id).single(),
       sc.from('profiles').select('id, full_name, email, role').eq('department_id', profile.department_id ?? ''),
+      sc.from('courses').select('id, title, status, start_date, hours').eq('company_id', profile.company_id).order('start_date', { ascending: false }).limit(8),
     ])
-    data.managerCompanyName = companyRes.data?.name ?? ''; data.managerEmployees = deptEmployeesRes.data ?? []
+    data.managerCompanyName = companyRes.data?.name ?? ''
+    data.managerCompanyId = profile.company_id
+    data.managerEmployees = deptEmployeesRes.data ?? []
+    data.managerCourses = companyCoursesRes.data ?? []
   }
 
   // ===== instructor / supervisor =====

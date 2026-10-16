@@ -11,7 +11,7 @@ import { ImportEmployeesButton } from '@/components/company/import-employees-but
 import { DepartmentManager } from '@/components/company/department-manager'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '組織架構 | ID3A 管理平台' }
+export const metadata = { title: '組織架構 | 人才發展管理系統' }
 
 const ROLE_LABELS: Record<string, string> = { consultant: '顧問', hr: 'HR', manager: '主管', employee: '員工' }
 
@@ -26,6 +26,7 @@ export default async function OrganizationPage({
 
   const profile = await getProfile(user.id)
   if (profile?.role !== 'consultant' && profile?.role !== 'hr') redirect('/dashboard')
+  if (profile?.role === 'hr' && profile?.company_id !== companyId) redirect('/dashboard')
 
   const sc = createServiceClient()
   const { data: company } = await sc.from('companies').select('id, name').eq('id', companyId).single()

@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import type { FormSchema } from '@/types/form-schema'
 
-export const metadata = { title: '文件預覽 | ID3A 管理平台' }
+export const metadata = { title: '文件預覽 | 人才發展管理系統' }
 
 const TIER_LABELS: Record<number, string> = { 1: '一階：管理手冊', 2: '二階：程序文件', 3: '三階：工作指導書', 4: '四階：表單' }
 

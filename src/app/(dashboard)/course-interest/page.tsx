@@ -5,7 +5,7 @@ import { CourseInterestClient } from './course-interest-client'
 import { FUTURE_COURSES } from '@/lib/survey-questions'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '課程興趣統計 | ID3A 管理平台' }
+export const metadata = { title: '課程興趣統計 | 人才發展管理系統' }
 
 export default async function CourseInterestPage() {
   const user = await getUser()

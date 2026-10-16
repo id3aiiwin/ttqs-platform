@@ -8,7 +8,7 @@ import { InitDocumentsButton } from '@/components/company/init-documents-button'
 import { getUser } from '@/lib/get-user'
 import type { FormSchema } from '@/types/form-schema'
 
-export const metadata = { title: '四階管理文件 | ID3A 管理平台' }
+export const metadata = { title: '四階管理文件 | 人才發展管理系統' }
 
 export default async function DocumentsPage({
   params,
@@ -25,7 +25,10 @@ export default async function DocumentsPage({
   if (!user) redirect('/auth/login')
 
   const profile = await getProfile(user.id)
-  const isConsultant = profile?.role === 'consultant'
+  const isConsultant = profile?.role === 'consultant' || profile?.role === 'admin'
+
+  // HR / Manager 只能存取自己所屬企業
+  if (!isConsultant && profile?.company_id !== id) redirect('/dashboard')
 
   const serviceClient = createServiceClient()
 

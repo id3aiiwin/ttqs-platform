@@ -4,6 +4,10 @@ import { getProfile } from '@/lib/get-profile'
 
 export async function POST(req: NextRequest) {
   try {
+    const supabaseAuth = await createClient()
+    const { data: { user } } = await supabaseAuth.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
     const body = await req.json()
     const { user_id, user_name, action, entity_type, entity_id, details } = body
 

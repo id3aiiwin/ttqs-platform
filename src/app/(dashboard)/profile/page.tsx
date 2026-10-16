@@ -7,7 +7,7 @@ import { ChangePassword } from './change-password'
 import { ROLE_LABELS } from '@/lib/utils'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '個人設定 | ID3A 管理平台' }
+export const metadata = { title: '個人設定 | 人才發展管理系統' }
 
 export default async function ProfilePage() {
   const user = await getUser()

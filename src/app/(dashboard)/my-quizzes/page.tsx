@@ -4,7 +4,7 @@ import { getProfile } from '@/lib/get-profile'
 import { MyQuizzesClient } from './my-quizzes-client'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '測驗紀錄 | ID3A 管理平台' }
+export const metadata = { title: '測驗紀錄 | 人才發展管理系統' }
 
 export default async function MyQuizzesPage() {
   const user = await getUser()

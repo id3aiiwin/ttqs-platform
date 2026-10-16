@@ -4,7 +4,7 @@ import { getProfile } from '@/lib/get-profile'
 import { getUser } from '@/lib/get-user'
 import { InstructorCourseList } from '@/components/instructor/instructor-course-list'
 
-export const metadata = { title: '我的授課 | ID3A 管理平台' }
+export const metadata = { title: '我的授課 | 人才發展管理系統' }
 
 export default async function MyCoursesPage() {
   const user = await getUser()

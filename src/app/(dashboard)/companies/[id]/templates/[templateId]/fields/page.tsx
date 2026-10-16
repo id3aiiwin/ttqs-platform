@@ -7,7 +7,7 @@ import { FieldEditorClient } from './field-editor-client'
 import type { FormSchema } from '@/types/form-schema'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '編輯表單欄位 | ID3A 管理平台' }
+export const metadata = { title: '編輯表單欄位 | 人才發展管理系統' }
 
 export default async function FieldEditorPage({
   params,

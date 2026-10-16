@@ -17,8 +17,19 @@ const ACCESS_LABELS: Record<string, string> = { all: '全部企業', specific: '
 interface ReplaceRule { placeholder: string; field: string }
 interface ReviewReminder { section: string; description: string }
 
+const CATEGORY_LABELS: Record<string, string> = {
+  ttqs: 'TTQS 文件範本',
+  course_material: '課程教材',
+  reference: '參考資料',
+}
+const CATEGORY_COLORS: Record<string, string> = {
+  ttqs: 'bg-indigo-100 text-indigo-700',
+  course_material: 'bg-teal-100 text-teal-700',
+  reference: 'bg-amber-100 text-amber-700',
+}
+
 interface Template {
-  id: string; name: string; doc_number_format: string | null; pddro_phase: string
+  id: string; name: string; category: string; doc_number_format: string | null; pddro_phase: string
   tier: number | null; version: string | null; ttqs_indicator: string | null
   description: string | null; content: string | null; structured_content: Record<string, unknown> | null
   access_level: string; is_system: boolean; file_url: string | null; allowed_companies: string[]
@@ -133,13 +144,18 @@ export function KbTemplateCard({ template: t, usageCount, isConsultant, companie
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <h3 className="text-sm font-semibold text-gray-900 truncate">{t.name}</h3>
+            <span className={`text-xs rounded-full px-2 py-0.5 flex-shrink-0 ${CATEGORY_COLORS[t.category] ?? 'bg-gray-100 text-gray-600'}`}>
+              {CATEGORY_LABELS[t.category] ?? t.category}
+            </span>
             {t.is_system && <Badge variant="info">系統內建</Badge>}
             {t.content && <span className="text-xs text-green-500">有內容</span>}
           </div>
           <div className="flex items-center gap-2 flex-wrap text-xs">
-            <span className={`rounded-full px-2 py-0.5 ${PHASE_COLORS[t.pddro_phase] ?? PHASE_COLORS.general}`}>
-              {PHASE_LABELS[t.pddro_phase] ?? t.pddro_phase}
-            </span>
+            {t.category === 'ttqs' && (
+              <span className={`rounded-full px-2 py-0.5 ${PHASE_COLORS[t.pddro_phase] ?? PHASE_COLORS.general}`}>
+                {PHASE_LABELS[t.pddro_phase] ?? t.pddro_phase}
+              </span>
+            )}
             {t.doc_number_format && <span className="text-gray-400 font-mono">{t.doc_number_format}</span>}
             {t.ttqs_indicator && <span className="text-gray-400">指標 {t.ttqs_indicator}</span>}
             {t.version && <span className="text-gray-400">v{t.version}</span>}

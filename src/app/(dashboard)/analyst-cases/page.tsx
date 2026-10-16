@@ -4,7 +4,7 @@ import { getProfile } from '@/lib/get-profile'
 import { AnalystDashboard } from '@/components/dashboard/analyst-dashboard'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '分析師個案管理 | ID3A 管理平台' }
+export const metadata = { title: '分析師個案管理 | 人才發展管理系統' }
 
 export default async function AnalystCasesPage() {
   const user = await getUser()

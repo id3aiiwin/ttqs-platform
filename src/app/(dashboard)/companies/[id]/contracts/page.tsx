@@ -7,7 +7,7 @@ import { ContractListItem } from '@/components/company/contract-list-item'
 import { ContractForm } from '@/components/company/contract-form'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '合約管理 | ID3A 管理平台' }
+export const metadata = { title: '合約管理 | 人才發展管理系統' }
 
 export default async function ContractsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params

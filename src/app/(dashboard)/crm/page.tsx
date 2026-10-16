@@ -5,7 +5,7 @@ import { Card, CardHeader } from '@/components/ui/card'
 import { CrmClient } from './crm-client'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '互動紀錄 | ID3A 管理平台' }
+export const metadata = { title: '互動紀錄 | 人才發展管理系統' }
 
 export default async function CrmPage() {
   const user = await getUser()

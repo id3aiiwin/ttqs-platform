@@ -4,6 +4,10 @@ import { getProfile } from '@/lib/get-profile'
 
 // GET: 取得課程教材列表
 export async function GET(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: '未登入' }, { status: 401 })
+
   const courseId = request.nextUrl.searchParams.get('course_id')
   if (!courseId) return NextResponse.json({ error: '缺少 course_id' }, { status: 400 })
 

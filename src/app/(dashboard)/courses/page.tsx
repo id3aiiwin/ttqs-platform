@@ -5,7 +5,7 @@ import { CourseListPanel } from '@/components/course/course-list-panel'
 import { CourseDetailPanel } from '@/components/course/course-detail-panel'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '課程管理 | ID3A 管理平台' }
+export const metadata = { title: '課程管理 | 人才發展管理系統' }
 
 export default async function CoursesPage({
   searchParams,
@@ -19,11 +19,19 @@ export default async function CoursesPage({
   const profile = await getProfile(user.id)
 
   const serviceClient = createServiceClient()
+  const isConsultant = profile?.role === 'consultant' || profile?.role === 'admin'
 
-  const { data: courses } = await serviceClient
+  let courseQuery = serviceClient
     .from('courses')
     .select('id, title, status, start_date, hours, company_id')
     .order('created_at', { ascending: false })
+
+  // HR / Manager 只看自己企業的課程
+  if (!isConsultant && profile?.company_id) {
+    courseQuery = courseQuery.eq('company_id', profile.company_id)
+  }
+
+  const { data: courses } = await courseQuery
 
   // 取得企業名稱
   const companyIds = [...new Set((courses ?? []).map((c) => c.company_id).filter(Boolean) as string[])]
@@ -40,8 +48,10 @@ export default async function CoursesPage({
     company_name: c.company_id ? (companyMap[c.company_id] ?? '-') : '公開課',
   }))
 
-  // 所有企業列表（供篩選用）
-  const { data: allCompanies } = await serviceClient.from('companies').select('id, name').order('name')
+  // 企業篩選器僅顧問/行政可用
+  const { data: allCompanies } = isConsultant
+    ? await serviceClient.from('companies').select('id, name').order('name')
+    : { data: [] }
   const companyOptions = (allCompanies ?? []).map((c) => ({ id: c.id, name: c.name }))
 
   // 選中的課程詳情

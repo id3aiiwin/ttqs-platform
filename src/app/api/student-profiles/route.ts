@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
   // Create auth user with temp password (email_confirm = true so they can reset later)
   const { data: authUser, error: authError } = await sc.auth.admin.createUser({
     email,
-    password: 'id3a',
+    password: '1234',
     email_confirm: true,
     user_metadata: { full_name: full_name || '' },
   })

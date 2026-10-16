@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient, createClient } from '@/lib/supabase/server'
+
+async function requireAuth() {
+  const authClient = await createClient()
+  const { data: { user } } = await authClient.auth.getUser()
+  return user
+}
 
 export async function POST(request: NextRequest) {
+  const user = await requireAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const body = await request.json()
   const sc = createServiceClient()
   const { error } = await sc.from('course_registrations').insert(body)
@@ -10,6 +19,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const user = await requireAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { id, ...updates } = await request.json()
   if (!id) return NextResponse.json({ error: 'missing id' }, { status: 400 })
   const sc = createServiceClient()
@@ -19,6 +31,9 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const user = await requireAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { id } = await request.json()
   if (!id) return NextResponse.json({ error: 'missing id' }, { status: 400 })
   const sc = createServiceClient()

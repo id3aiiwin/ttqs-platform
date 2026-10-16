@@ -4,7 +4,7 @@ import { getProfile } from '@/lib/get-profile'
 import { InstructorAnalyticsClient } from './instructor-analytics-client'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '講師績效分析 | ID3A 管理平台' }
+export const metadata = { title: '講師績效分析 | 人才發展管理系統' }
 
 export default async function InstructorAnalyticsPage() {
   const user = await getUser()

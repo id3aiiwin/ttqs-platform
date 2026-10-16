@@ -72,7 +72,7 @@ export function LineBindClient({ lineUserId }: { lineUserId: string }) {
                 autoFocus
               />
               <p className="text-xs text-gray-400 mt-1.5">
-                請使用您註冊 ID3A 管理平台時的 Email
+                請使用您註冊 人才發展管理系統時的 Email
               </p>
             </div>
 
@@ -93,7 +93,7 @@ export function LineBindClient({ lineUserId }: { lineUserId: string }) {
         )}
 
         <p className="text-center text-xs text-gray-400 mt-4">
-          ID3A 管理平台
+          人才發展管理系統
         </p>
       </div>
     </div>

@@ -4,7 +4,7 @@ import { getProfile } from '@/lib/get-profile'
 import { PeopleManagement } from '@/components/dashboard/people-management'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '人員管理 | ID3A 管理平台' }
+export const metadata = { title: '人員管理 | 人才發展管理系統' }
 
 export default async function PeoplePage() {
   const user = await getUser()

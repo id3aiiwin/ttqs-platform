@@ -4,7 +4,7 @@ import { getProfile } from '@/lib/get-profile'
 import { SurveyResultsClient } from './survey-results-client'
 import { getUser } from '@/lib/get-user'
 
-export const metadata = { title: '問卷總覽 | ID3A 管理平台' }
+export const metadata = { title: '問卷總覽 | 人才發展管理系統' }
 
 export default async function SurveyResultsPage() {
   const user = await getUser()
